@@ -1,0 +1,6 @@
+store-api
+__pycache__
+configuration/
+logs
+uploads
+.vscode
