@@ -10,7 +10,7 @@ from database.connection import *
 
 
 """Pydantic user Schema"""
-class RiderDetails(BaseModel):
+class UserDetails(BaseModel):
     username: str
     password : str
 
@@ -24,7 +24,7 @@ class RiderDetails(BaseModel):
 
 
 """Db schema for user"""
-class Rider(Document):
+class StoreUser(Document):
     username = StringField()
     password = StringField()
 

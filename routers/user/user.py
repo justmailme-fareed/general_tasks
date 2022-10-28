@@ -7,7 +7,7 @@ Created Date : 30-9-2022
 
 from fastapi import APIRouter,Depends,Response,status
 from .user_auth import AuthHandler
-from .user_schema import RiderDetails,Rider
+from .user_schema import UserDetails,StoreUser
 from configuration.config import api_version
 from database.connection import *
 import logging
@@ -28,15 +28,15 @@ auth_handler = AuthHandler()
 
 #Register User Data
 @router.post('/register', status_code=201)
-def register_user(user_details: RiderDetails, response : Response):
+def register_user(user_details: UserDetails, response : Response):
     try:
-        check_user = Rider.objects(username= user_details.username)
+        check_user = StoreUser.objects(username= user_details.username)
         if len(check_user) == 1:
             response.status_code = status.HTTP_409_CONFLICT
             return { 'status': "error","message" :f"{user_details.username} is already there"} 
         user_data = dict(user_details)
         user_data["password"] = auth_handler.get_password_hash(user_details.password)
-        Rider(**user_data).save()
+        StoreUser(**user_data).save()
         return {'status': "success","message" :f"{user_details.username} Created Successfully"}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
@@ -45,13 +45,13 @@ def register_user(user_details: RiderDetails, response : Response):
 
 #Login User Data
 @router.post('/login',status_code=200)
-def login_user(user_details: RiderDetails, response : Response):
+def login_user(user_details: UserDetails, response : Response):
     try:
         username = user_details.username
         password = user_details.password
-        check_count = Rider.objects(username= username).count()
+        check_count = StoreUser.objects(username= username).count()
         if check_count == 1:
-            get_data = Rider.objects(username= username)
+            get_data = StoreUser.objects(username= username)
             get_data = get_data.to_json()
             data = json.loads(get_data)
             password = data[0]["password"]

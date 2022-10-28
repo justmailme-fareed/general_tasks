@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from configuration.config import secret,algorithm,minute,day
-from .user_schema import RiderDetails
+from .user_schema import StoreUser
 import json
 
 class AuthHandler():
