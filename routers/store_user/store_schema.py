@@ -40,7 +40,6 @@ class storeDetails(Document):
     dob = StringField(required=True)
     bloodgroup = EnumField(Blood_group,required=True)
     gender = EnumField(Gender,required=True)
-    language_known=StringField(required=True)
     door_number=IntField(required=True)
     street_name=StringField(required=True)
     area=StringField(required=True)
@@ -58,12 +57,7 @@ class BankDetail(Document):
 class ContactDetail(Document):
     phone=IntField(required=True,min_length=10,max_length=10)
     alternate_phone=IntField(required=True,min_length=10,max_length=10)
-    job_type = EnumField(Jobtype,required=True)
     email=EmailField(required=True)
-
-class DrivingDetail(Document):
-        driving_license_number=IntField(required=True)
-        phodriving_license_expiry_datene=StringField(required=True)
 
 
 class  EmployeeDetail(Document):
@@ -78,18 +72,16 @@ class  EmployeeDetail(Document):
     employee_id=StringField(requird=True)
 
 class SupportiveDocument(Document):
-    rider_image_url = StringField()
+    user_image_url = StringField()
     aadhar_image_url = StringField()
-    driving_license_url = StringField()
     bank_passbook_url = StringField()
 
 
-class Rider(Document):
+class Store_Employee(Document):
     personal_detail = ReferenceField(storeDetails)
     bank_detail = ReferenceField(BankDetail)
     contact_detail=ReferenceField(ContactDetail)
     supportive_document = ReferenceField(SupportiveDocument)
-    driving_license_detail = ReferenceField(DrivingDetail)
     employee_detail = ReferenceField(EmployeeDetail)
 
 

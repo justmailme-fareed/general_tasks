@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from routers.user import user 
 # from routers.rider import rider
 from routers.rider import rider_details
-
+from routers.store_user import store_details
 import logging
 
 #Logging 
@@ -29,6 +29,7 @@ app = FastAPI(
 
 app.include_router(user.router)
 # app.include_router(rider.router)
+app.include_router(store_details.router)
 app.include_router(rider_details.router)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="static")
 

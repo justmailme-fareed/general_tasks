@@ -167,16 +167,28 @@ class validation:
 
 
     def alternatephone_validate(number):
-        number = number.strip()
-        if number == "":
-            # return number
-            raise HTTPException(status_code=404, detail="Please enter valid alternate number  ")
-        if number:
-            mobile_pattern = re.compile("(0|91)?[6-9][0-9]{9}")
-            if mobile_pattern.match(number):
-                return number
-            else:
-                raise HTTPException(status_code=404, detail="Please enter valid alternate number  ")
+        if number is None:
+            number="null"
+            return number
+        else:
+
+            number = number.strip()
+            if number:
+                mobile_pattern = re.compile("(0|91)?[6-9][0-9]{9}")
+                if mobile_pattern.match(number):
+                    return number
+                else:
+                    raise HTTPException(status_code=404, detail="Please enter valid alternate number  ")
+
+        # if number == "":
+        #     return number
+        #     # raise HTTPException(status_code=404, detail="Please enter valid alternate number  ")
+        # # if number:
+        #     mobile_pattern = re.compile("(0|91)?[6-9][0-9]{9}")
+        #     if mobile_pattern.match(number):
+        #         return number
+        #     else:
+        #         raise HTTPException(status_code=404, detail="Please enter valid alternate number  ")
 
 
 

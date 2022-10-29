@@ -1,23 +1,17 @@
 import logging
-from tkinter import S
-from turtle import st
 from typing import List
-from fastapi import FastAPI, APIRouter,Depends,Response,status,Form,UploadFile,File
-from pydantic import EmailStr, Field
-from routers.user.user_schema import StoreUser
+from fastapi import  APIRouter,Depends,Response,status,Form,UploadFile,File,Request
+from pydantic import EmailStr
 from configuration.config import api_version
 from routers.user.user_auth import AuthHandler
-from fastapi import  APIRouter,Response,status,Request,Form,File,UploadFile
 import os
 import json
 from typing import Optional
-
 from routers.rider.rider_schema import Rider,Store
 from common.validation import validation
 import pymongo 
 import json
 from routers.rider import strong_password
-# from common.httpoperation import http_operation
 from datetime import date,datetime
 now = datetime.now()
 
@@ -30,6 +24,7 @@ from fastapi import Body, FastAPI
 
 current_time = now.strftime("%H:%M:%S")
 password=strong_password.password
+print(password)
 
 mongoURI = "mongodb://localhost:27017"
 
@@ -173,8 +168,8 @@ auth_handler = AuthHandler()
 #     return {"status":"success","message":"Data added Successfully!"}
 
 @router.post('/store',status_code=201)
-async def create_store(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),
-blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Body(default="2022-06-13"),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:str= Form(),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(),ifsc_code : str = Form(),user_type : User_type = Form(),store_status : store_status = Form(),user_data=Depends(auth_handler.auth_wrapper)
+async def create_rider(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),
+blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Body(default="2022-06-13"),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(),ifsc_code : str = Form(),user_type : User_type = Form(),store_status : store_status = Form(),user_data=Depends(auth_handler.auth_wrapper)
 ,rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
     data = await request.form()
     data = dict(data)
@@ -184,7 +179,7 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[s
 
 
     if rider_image_url:
-        rider_image_video = f"uploads/rider/profile/{current_time}_{rider_image_url.filename}"
+        rider_image_video = f"./uploads/rider/profile/{current_time}_{rider_image_url.filename}"
         if not rider_image_video:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
             return {'status':'error','message':'Please check the valid file location'}
@@ -195,7 +190,7 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[s
             file_object.write(rider_image_url.file.read())
     rider_image_url=rider_image_video
     if aadhar_image_url:
-        aadhar_location = f"uploads/rider/aadhar/{current_time}_{aadhar_image_url.filename}"
+        aadhar_location = f"./uploads/rider/aadhar/{current_time}_{aadhar_image_url.filename}"
         if not aadhar_location:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
             return {'status':'error','message':'Please check the valid file location'}
@@ -206,7 +201,7 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[s
             file_object.write(aadhar_image_url.file.read())
     aadhar_image_url=aadhar_location
     if driving_license_url:
-        driving_license_location = f"uploads/rider/driving_license/{current_time}_{driving_license_url.filename}"
+        driving_license_location = f"./uploads/rider/driving_license/{current_time}_{driving_license_url.filename}"
         if not driving_license_location:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
             return {'status':'error','message':'Please check the valid file location'}
@@ -217,7 +212,7 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[s
             file_object.write(driving_license_url.file.read())
     driving_license_url=driving_license_location
     if bank_passbook_url:
-        bank_passbook_location = f"uploads/rider/bank_passbook/{current_time}_{bank_passbook_url.filename}"
+        bank_passbook_location = f"./uploads/rider/bank_passbook/{current_time}_{bank_passbook_url.filename}"
         if not bank_passbook_location:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
             return {'status':'error','message':'Please check the valid file location'}
@@ -291,10 +286,10 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[s
     result["bank_detail"]['bank_name'] = data['bank_name']
     result["bank_detail"]['branch_name'] = data['branch_name']
     result["bank_detail"]['account_number'] = data['account_number']
-    result["bank_detail"]['ifsc_code'] = data['ifsc_code']\
+    result["bank_detail"]['ifsc_code'] = data['ifsc_code']
     
     result["contact_detail"]['phone'] = data['phone']
-    result["contact_detail"]['alternate_phone'] = data['alternate_phone']
+    result["contact_detail"]['alternate_phone'] = alternate_phone
     result["contact_detail"]['job_type'] = data['job_type']
 
 
@@ -330,7 +325,7 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[s
 
 #get report
 @router.get('/{id}',status_code=200)
-def store_single_data(id : str,response : Response):
+def rider_single_data(id : str,response : Response):
     try:
         get_data = Rider.objects(id= id)
         if not get_data:
@@ -348,7 +343,7 @@ def store_single_data(id : str,response : Response):
         return { 'status': "error","message" :f"Data not exist for this id {id.strip()}"}
  
 @router.get("/store")
-def store_all_data():
+def rider_all_data():
     response = collection.find({})
     data=[]
     for i in response:
@@ -361,7 +356,7 @@ def store_all_data():
 
 #Delete User Data
 @router.delete('/{id}',status_code=200)
-def delete_store(id : str, response : Response):
+def delete_rider(id : str, response : Response):
     try:
         get_data = Rider.objects(id=id)
         if not get_data:
@@ -370,18 +365,10 @@ def delete_store(id : str, response : Response):
         get_data = get_data.to_json()
         userdata = json.loads(get_data)
         user_id = userdata[0]["_id"]
-        rider=Rider.objects(id=id)
-        for i in rider:
-            print("i",i)
-        print("rider",rider)
-        # Rider.objects(id = id).delete()
-      
-        # file_path = "/Users/muskan/Documents/project/store-api/uploads/rider/bank_passbook/10:24:34_Screenshot 2022-09-06 at 11.59.16.png"
-        # if os.path.isfile(file_path):
-        #     os.remove(file_path)
-        #     print("File has been deleted")
-        # else:
-        #     print("File does not exist")
+        rider_image_url=userdata[0]['supportive_document']
+        for image_url,value in rider_image_url.items():
+            os.remove(value)
+        Rider.objects(id = id).delete()
         return { 'status': "success","message" :f"Data deleted Successfully" }
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
@@ -398,13 +385,16 @@ async def store_update(id:str,response : Response,request: Request,firstname : s
         get_data = get_data.to_json()
         userdata = json.loads(get_data)
         user_id = userdata[0]["_id"]
+        rider_image_url=userdata[0]['supportive_document']
+        for image_url,value in rider_image_url.items():
+            os.remove(value)
         Rider.objects(id = id).delete()
          
         data = await request.form()
 
         data = dict(data)
         if rider_image_url:
-            rider_image_video = f"uploads/rider/profile/{current_time}_{rider_image_url.filename}"
+            rider_image_video = f"./uploads/rider/profile/{current_time}_{rider_image_url.filename}"
             if not rider_image_video:
                 response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
                 return {'status':'error','message':'Please check the valid file location'}
@@ -415,7 +405,7 @@ async def store_update(id:str,response : Response,request: Request,firstname : s
                 file_object.write(rider_image_url.file.read())
         rider_image_url=rider_image_video
         if aadhar_image_url:
-            aadhar_location = f"uploads/rider/aadhar/{current_time}_{aadhar_image_url.filename}"
+            aadhar_location = f"./uploads/rider/aadhar/{current_time}_{aadhar_image_url.filename}"
             if not aadhar_location:
                 response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
                 return {'status':'error','message':'Please check the valid file location'}
@@ -426,7 +416,7 @@ async def store_update(id:str,response : Response,request: Request,firstname : s
                 file_object.write(aadhar_image_url.file.read())
         aadhar_image_url=aadhar_location
         if driving_license_url:
-            driving_license_location = f"uploads/rider/driving_license/{current_time}_{driving_license_url.filename}"
+            driving_license_location = f"./uploads/rider/driving_license/{current_time}_{driving_license_url.filename}"
             if not driving_license_location:
                 response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
                 return {'status':'error','message':'Please check the valid file location'}
@@ -437,7 +427,7 @@ async def store_update(id:str,response : Response,request: Request,firstname : s
                 file_object.write(driving_license_url.file.read())
         driving_license_url=driving_license_location
         if bank_passbook_url:
-            bank_passbook_location = f"uploads/rider/bank_passbook/{current_time}_{bank_passbook_url.filename}"
+            bank_passbook_location = f"./uploads/rider/bank_passbook/{current_time}_{bank_passbook_url.filename}"
             if not bank_passbook_location:
                 response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
                 return {'status':'error','message':'Please check the valid file location'}
