@@ -4,10 +4,12 @@ Description : This file has all the modules file
 Author : Tree Integrated services
 Created Date : 9-8-2022
 """
-
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
 from routers.user import user 
-from routers.rider import rider
+# from routers.rider import rider
+from routers.rider import rider_details
+
 import logging
 
 #Logging 
@@ -26,4 +28,7 @@ app = FastAPI(
 )
 
 app.include_router(user.router)
-app.include_router(rider.router)
+# app.include_router(rider.router)
+app.include_router(rider_details.router)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="static")
+
