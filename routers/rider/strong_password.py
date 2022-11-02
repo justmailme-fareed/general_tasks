@@ -55,5 +55,3 @@ password = ""
 for x in temp_pass_list:
 		password = password + x
 		
-# print out password
-print(password)

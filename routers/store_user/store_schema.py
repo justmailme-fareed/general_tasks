@@ -83,9 +83,3 @@ class Store_Employee(Document):
     contact_detail=ReferenceField(ContactDetail)
     supportive_document = ReferenceField(SupportiveDocument)
     employee_detail = ReferenceField(EmployeeDetail)
-
-
-class Store(Document):
-    username = StringField()
-    password = StringField()
-    post_id=StringField()

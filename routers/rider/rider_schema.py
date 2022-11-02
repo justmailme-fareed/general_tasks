@@ -92,8 +92,5 @@ class Rider(Document):
     driving_license_detail = ReferenceField(DrivingDetail)
     employee_detail = ReferenceField(EmployeeDetail)
 
-
-class Store(Document):
-    username = StringField()
-    password = StringField()
-    post_id=StringField()
+class images(Document):
+    aadhar_image_url=StringField()

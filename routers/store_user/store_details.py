@@ -1,41 +1,27 @@
-import logging
-from typing import List
-from fastapi import  APIRouter,Depends,Response,status,Form,UploadFile,File,Request
+import logging,json,pymongo,os
+from fastapi import  APIRouter,Depends,Response,status,Form,UploadFile,File,Request,Body
 from pydantic import EmailStr
 from configuration.config import api_version
 from routers.user.user_auth import AuthHandler
-import os
-import json
-from typing import Optional
+from typing import Optional,Union
 from routers.store_user.store_schema import Store_Employee
 from common.validation import validation
-import pymongo 
-import json
 from routers.rider import strong_password
 from datetime import date,datetime
-now = datetime.now()
-
 from enum import Enum
-from datetime import datetime, time, timedelta
-from typing import Union
-from uuid import UUID
+from pathlib import Path
 
-from fastapi import Body, FastAPI
-
+current_dir=str(Path.cwd())
+now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 password=strong_password.password
-print(password)
-
 mongoURI = "mongodb://localhost:27017"
-
 client = pymongo.MongoClient(mongoURI)
-
 db = client["tis_ecommerce_service"]
-collection = db["rider"]
+collection = db["store__employee"]
 
 
-# collection = db["rider"]
- 
+
 class Gender(str,Enum):
     male="male"
     female="female"
@@ -68,22 +54,14 @@ class Jobtype(str,Enum):
     partime='partime'
     contract='contract'
 
-
-# mongoURI = "mongodb://localhost:27017"
-
-# client = pymongo.MongoClient(mongoURI)
-
-# db = client["tis_ecommerce_service"]
-
-# collection = db["combine_table"]
 router = APIRouter(
-    prefix=api_version + "/store_user",
+    prefix=api_version + "/store",
     tags=["Store User"],
     responses={404: {"description": "Not found"}},
 )
 auth_handler = AuthHandler()
 
-@router.post('/store',status_code=201)
+@router.post('/employee',status_code=201)
 async def create_rider(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),
 blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(),ifsc_code : str = Form(),user_type : User_type = Form(),store_status : store_status = Form(),user_data=Depends(auth_handler.auth_wrapper)
 ,user_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
@@ -91,42 +69,54 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = For
     data = dict(data)
     emp_id=[]
     userdata=user_data['id']
-    print("username",user_data['id'])
-
 
     if user_image_url:
-        user_image_url_video = f"./uploads/store_user/user_image/{current_time}_{user_image_url.filename}"
-        if not user_image_url_video:
-            response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-            return {'status':'error','message':'Please check the valid file location'}
-        split_tup = os.path.splitext(user_image_url_video)
-        file_name = split_tup[0]
-        file_extension = split_tup[1]
-        with open(user_image_url_video, "wb+") as file_object:
-            file_object.write(user_image_url.file.read())
-    user_image_url=user_image_url_video
+            user_image_url_video = f"./uploads/store_user/user_image"
+            if not os.path.exists(user_image_url_video):
+                    create_path=Path(f"{current_dir}/uploads/store_user/user_image").mkdir(parents=True, exist_ok=True)
+                    user_image_url_video = f"./uploads/store_user/user_image/{current_time}_{user_image_url.filename}"
+                    split_tup = os.path.splitext(user_image_url_video)
+                    with open(user_image_url_video, "wb+") as file_object:
+                        file_object.write(user_image_url.file.read())
+                    user_image_url=user_image_url_video
+            else:
+                user_image_url_video=f'./uploads/store_user/user_image/{current_time}_{user_image_url.filename}'
+                split_tup = os.path.splitext(user_image_url_video)
+                with open(user_image_url_video, "wb+") as file_object:
+                    file_object.write(user_image_url.file.read())
+                user_image_url=user_image_url_video
+    
     if aadhar_image_url:
-        aadhar_location = f"./uploads/store_user/aadhar_image/{current_time}_{aadhar_image_url.filename}"
-        if not aadhar_location:
-            response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-            return {'status':'error','message':'Please check the valid file location'}
-        split_tup = os.path.splitext(aadhar_location)
-        file_name = split_tup[0]
-        file_extension = split_tup[1]
-        with open(aadhar_location, "wb+") as file_object:
-            file_object.write(aadhar_image_url.file.read())
-    aadhar_image_url=aadhar_location
+        aadhar_location = f"./uploads/store_user/aadhar_image"
+        if not os.path.exists(user_image_url_video):
+            create_path=Path(f"{current_dir}/uploads/store_user/aadhar_image").mkdir(parents=True, exist_ok=True)
+            aadhar_location = f"./uploads/store_user/aadhar_image/{current_time}_{aadhar_image_url.filename}"
+            split_tup = os.path.splitext(aadhar_location)
+            with open(aadhar_location, "wb+") as file_object:
+                file_object.write(aadhar_image_url.file.read())
+            aadhar_image_url=aadhar_location
+        else:
+            aadhar_location=f'./uploads/store_user/aadhar_image/{current_time}_{aadhar_image_url.filename}'
+            split_tup = os.path.splitext(aadhar_location)
+            with open(aadhar_location, "wb+") as file_object:
+                file_object.write(aadhar_image_url.file.read())
+            aadhar_image_url=aadhar_location
+        
     if bank_passbook_url:
-        bank_passbook_location = f"./uploads/store_user/bank_passbook/{current_time}_{bank_passbook_url.filename}"
-        if not bank_passbook_location:
-            response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-            return {'status':'error','message':'Please check the valid file location'}
-        split_tup = os.path.splitext(bank_passbook_location)
-        file_name = split_tup[0]
-        file_extension = split_tup[1]
-        with open(bank_passbook_location, "wb+") as file_object:
-            file_object.write(bank_passbook_url.file.read())
-    bank_passbook_url=bank_passbook_location
+        bank_passbook_location = f"./uploads/store_user/bank_passbook"
+        if not os.path.exists(bank_passbook_location):
+            create_path=Path(f"{current_dir}/uploads/store_user/bank_passbook").mkdir(parents=True, exist_ok=True)
+            bank_passbook_location = f"./uploads/store_user/bank_passbook/{current_time}_{bank_passbook_url.filename}"
+            split_tup = os.path.splitext(bank_passbook_location)
+            with open(bank_passbook_location, "wb+") as file_object:
+                file_object.write(bank_passbook_url.file.read())
+            bank_passbook_url=bank_passbook_location
+        else:
+            bank_passbook_location=f'./uploads/store_user/bank_passbook/{current_time}_{bank_passbook_url.filename}'
+            split_tup = os.path.splitext(bank_passbook_location)
+            with open(bank_passbook_location, "wb+") as file_object:
+                file_object.write(bank_passbook_url.file.read())
+            bank_passbook_url=bank_passbook_location
 
     firstname=validation.name_validation(firstname)
     lastname=validation.lastname_validation(lastname)
@@ -151,14 +141,9 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = For
         emp_id.append('S')
     else:
         return {"status":'error','message':'Please check city and usertype'}
-    # emp=str(emp)
     collection_count=collection.count_documents({})
-    # empid=ids+1
-    print("ids",collection_count)
     employee_id=str(emp_id[0]) + emp_city + '-00'+ str(collection_count+1)
-    print("da",employee_id) 
 
-    print("city",city[:3])
 
     result = {}
     result["personal_detail"] = {}
@@ -208,16 +193,14 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = For
     id=Store_Employee(**result).save()
     return {"status":"success","message":f"Data added Successfully!"}
 
-# get report
-@router.get('/{id}',status_code=200)
-def store_single_data(id : str,response : Response):
+# get single store data
+@router.get('/employee/{id}',status_code=200)
+def store_single_data(id : str,response : Response,user_data=Depends(auth_handler.auth_wrapper)):
     try:
         get_data = Store_Employee.objects(id= id)
         if not get_data:
             response.status_code = status.HTTP_404_NOT_FOUND
-
             return { 'status': "error","message" :f"Data not exist for this id" }
-
         get_data = get_data.to_json()
         userdata = json.loads(get_data)
         del userdata[0]["_id"]
@@ -227,22 +210,20 @@ def store_single_data(id : str,response : Response):
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
         return { 'status': "error","message" :f"Data not exist for this id {id.strip()}"}
  
-@router.get("/store/employee")
-def store_employee_all_data():
+# get all store data
+@router.get("/employee")
+def store_employee_all_data(user_data=Depends(auth_handler.auth_wrapper)):
     collections = db["store__employee"]
     response = collections.find({})
     data=[]
-    for i in response:
-        i["_id"] = str(i["_id"])
-        data.append(i)
+    for store_collection in response:
+        store_collection["_id"] = str(store_collection["_id"])
+        data.append(store_collection)
     return {"status":"success","data":data}
 
-
-
-
-# #Delete User Data
-@router.delete('/{id}',status_code=200)
-def delete_store_employee(id : str, response : Response):
+# #Delete store Data
+@router.delete('/employee/{id}',status_code=200)
+def delete_store_employee(id : str, response : Response,user_data=Depends(auth_handler.auth_wrapper)):
     try:
         get_data = Store_Employee.objects(id=id)
         if not get_data:
@@ -260,12 +241,9 @@ def delete_store_employee(id : str, response : Response):
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
         return { 'status': "error","message" :str(e)}
-
-
-
-@router.put('/{id}')
-async def  store_employee_update(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(),ifsc_code : str = Form(),user_type : User_type = Form(),store_status : store_status = Form(),user_data=Depends(auth_handler.auth_wrapper),user_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
-    
+#update store data
+@router.put('/employee/{id}')
+async def  store_employee_update(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(),ifsc_code : str = Form(),user_type : User_type = Form(),store_status : store_status = Form(),user_data=Depends(auth_handler.auth_wrapper),user_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)): 
     try:
         get_data = Store_Employee.objects(id=id)
         if not get_data:
@@ -282,42 +260,54 @@ async def  store_employee_update(response : Response,request: Request,firstname 
         data = dict(data)
         emp_id=[]
         userdata=user_data['id']
-        print("username",user_data['id'])
-
 
         if user_image_url:
-            user_image_url_video = f"./uploads/store_user/user_image/{current_time}_{user_image_url.filename}"
-            if not user_image_url_video:
-                response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-                return {'status':'error','message':'Please check the valid file location'}
-            split_tup = os.path.splitext(user_image_url_video)
-            file_name = split_tup[0]
-            file_extension = split_tup[1]
-            with open(user_image_url_video, "wb+") as file_object:
-                file_object.write(user_image_url.file.read())
-        user_image_url=user_image_url_video
+                user_image_url_video = f"./uploads/store_user/user_image"
+                if not os.path.exists(user_image_url_video):
+                        create_path=Path(f"{current_dir}/uploads/store_user/user_image").mkdir(parents=True, exist_ok=True)
+                        user_image_url_video = f"./uploads/store_user/user_image/{current_time}_{user_image_url.filename}"
+                        split_tup = os.path.splitext(user_image_url_video)
+                        with open(user_image_url_video, "wb+") as file_object:
+                            file_object.write(user_image_url.file.read())
+                        user_image_url=user_image_url_video
+                else:
+                    user_image_url_video=f'./uploads/store_user/user_image/{current_time}_{user_image_url.filename}'
+                    split_tup = os.path.splitext(user_image_url_video)
+                    with open(user_image_url_video, "wb+") as file_object:
+                        file_object.write(user_image_url.file.read())
+                    user_image_url=user_image_url_video
+        
         if aadhar_image_url:
-            aadhar_location = f"./uploads/store_user/aadhar_image/{current_time}_{aadhar_image_url.filename}"
-            if not aadhar_location:
-                response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-                return {'status':'error','message':'Please check the valid file location'}
-            split_tup = os.path.splitext(aadhar_location)
-            file_name = split_tup[0]
-            file_extension = split_tup[1]
-            with open(aadhar_location, "wb+") as file_object:
-                file_object.write(aadhar_image_url.file.read())
-        aadhar_image_url=aadhar_location
+            aadhar_location = f"./uploads/store_user/aadhar_image"
+            if not os.path.exists(user_image_url_video):
+                create_path=Path(f"{current_dir}/uploads/store_user/aadhar_image").mkdir(parents=True, exist_ok=True)
+                aadhar_location = f"./uploads/store_user/aadhar_image/{current_time}_{aadhar_image_url.filename}"
+                split_tup = os.path.splitext(aadhar_location)
+                with open(aadhar_location, "wb+") as file_object:
+                    file_object.write(aadhar_image_url.file.read())
+                aadhar_image_url=aadhar_location
+            else:
+                aadhar_location=f'./uploads/store_user/aadhar_image/{current_time}_{aadhar_image_url.filename}'
+                split_tup = os.path.splitext(aadhar_location)
+                with open(aadhar_location, "wb+") as file_object:
+                    file_object.write(aadhar_image_url.file.read())
+                aadhar_image_url=aadhar_location
+            
         if bank_passbook_url:
-            bank_passbook_location = f"./uploads/store_user/bank_passbook/{current_time}_{bank_passbook_url.filename}"
-            if not bank_passbook_location:
-                response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-                return {'status':'error','message':'Please check the valid file location'}
-            split_tup = os.path.splitext(bank_passbook_location)
-            file_name = split_tup[0]
-            file_extension = split_tup[1]
-            with open(bank_passbook_location, "wb+") as file_object:
-                file_object.write(bank_passbook_url.file.read())
-        bank_passbook_url=bank_passbook_location
+            bank_passbook_location = f"./uploads/store_user/bank_passbook"
+            if not os.path.exists(bank_passbook_location):
+                create_path=Path(f"{current_dir}/uploads/store_user/bank_passbook").mkdir(parents=True, exist_ok=True)
+                bank_passbook_location = f"./uploads/store_user/bank_passbook/{current_time}_{bank_passbook_url.filename}"
+                split_tup = os.path.splitext(bank_passbook_location)
+                with open(bank_passbook_location, "wb+") as file_object:
+                    file_object.write(bank_passbook_url.file.read())
+                bank_passbook_url=bank_passbook_location
+            else:
+                bank_passbook_location=f'./uploads/store_user/bank_passbook/{current_time}_{bank_passbook_url.filename}'
+                split_tup = os.path.splitext(bank_passbook_location)
+                with open(bank_passbook_location, "wb+") as file_object:
+                    file_object.write(bank_passbook_url.file.read())
+                bank_passbook_url=bank_passbook_location
 
         firstname=validation.name_validation(firstname)
         lastname=validation.lastname_validation(lastname)
@@ -335,22 +325,14 @@ async def  store_employee_update(response : Response,request: Request,firstname 
         ifsc_code=validation.ifsc_code_validation(ifsc_code)
         bank_name=validation.bank_name_validation(bank_name)
         branch_name=validation.branch_name_validation(branch_name)
-        # RCHN-001
         if city:
             emp_city=city[:3]
         if user_type:
             emp_id.append('S')
         else:
             return {"status":'error','message':'Please check city and usertype'}
-        # emp=str(emp)
         collection_count=collection.count_documents({})
-        # empid=ids+1
-        print("ids",collection_count)
         employee_id=str(emp_id[0]) + emp_city + '-00'+ str(collection_count+1)
-        print("da",employee_id) 
-
-        print("city",city[:3])
-
         result = {}
         result["personal_detail"] = {}
         result["employee_detail"]={}
@@ -371,7 +353,6 @@ async def  store_employee_update(response : Response,request: Request,firstname 
         result["personal_detail"]['pincode'] = data['pincode']
         result["personal_detail"]['aadhar_number'] = data['aadhar_number']
 
-    
         result["bank_detail"]['bank_name'] = data['bank_name']
         result["bank_detail"]['branch_name'] = data['branch_name']
         result["bank_detail"]['account_number'] = data['account_number']
@@ -379,7 +360,6 @@ async def  store_employee_update(response : Response,request: Request,firstname 
         
         result["contact_detail"]['phone'] = data['phone']
         result["contact_detail"]['alternate_phone'] = alternate_phone
-
 
         result["contact_detail"]['email'] = data['email']
         
