@@ -7,8 +7,8 @@ class Gender(str,Enum):
    
 class User_type(str,Enum):
     rider='rider'
-    store='store'
-    user='user'
+    # store='store'
+    # user='user'
 
 class store_status(str,Enum):
     A='A'

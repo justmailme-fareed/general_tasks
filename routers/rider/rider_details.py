@@ -30,8 +30,8 @@ class Gender(str,Enum):
    
 class User_type(str,Enum):
     rider='rider'
-    store='store'
-    user='user'
+    # store='store'
+    # user='user'
 
 class store_status(str,Enum):
     A='A'
@@ -225,11 +225,6 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[s
     result["employee_detail"]['updated_by'] = userdata
     result["employee_detail"]['store_id'] = userdata
     result["employee_detail"]['employee_id'] = employee_id
-
-
-
-
-   
     id=Rider(**result).save()
     return {"status":"success","message":f"Data added Successfully!"}
 
@@ -237,6 +232,7 @@ blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[s
 @router.get('/rider/{id}',status_code=200)
 def rider_single_data(id : str,response : Response,username=Depends(auth_handler.auth_wrapper)):
     try:
+        id = id.strip()
         get_data = Rider.objects(id= id)
         if not get_data:
             response.status_code = status.HTTP_404_NOT_FOUND
@@ -267,6 +263,7 @@ def rider_all_data(username=Depends(auth_handler.auth_wrapper)):
 @router.delete('/rider/{id}',status_code=200)
 def delete_rider(id : str, response : Response,username=Depends(auth_handler.auth_wrapper)):
     try:
+        id = id.strip()
         get_data = Rider.objects(id=id)
         if not get_data:
             response.status_code = status.HTTP_404_NOT_FOUND
@@ -287,6 +284,7 @@ def delete_rider(id : str, response : Response,username=Depends(auth_handler.aut
 @router.put('/rider/{id}')
 async def store_update(id:str,response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Body(default="2022-06-13"),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone : str = Form(),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(),ifsc_code : str = Form(),user_type : User_type = Form(),store_status : store_status = Form(),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...),username=Depends(auth_handler.auth_wrapper)):
     try:
+        id = id.strip()
         get_data = Rider.objects(id=id)
         if not get_data:
             response.status_code = status.HTTP_404_NOT_FOUND

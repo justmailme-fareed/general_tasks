@@ -18,8 +18,8 @@ import json
 
 
 router = APIRouter(
-    prefix=api_version + "/user",
-    tags=["Store User"],
+    prefix=api_version + "/store-admin-user",
+    tags=["Store Admin User"],
     responses={404: {"description": "Not found"}},
 )
 
@@ -28,7 +28,7 @@ auth_handler = AuthHandler()
 
 #Register User Data
 @router.post('/register', status_code=201)
-def register_user(user_details: UserDetails, response : Response):
+def store_admin_register_user(user_details: UserDetails, response : Response):
     try:
         check_user = StoreUser.objects(username= user_details.username)
         if len(check_user) == 1:
@@ -45,12 +45,15 @@ def register_user(user_details: UserDetails, response : Response):
 
 #Login User Data
 @router.post('/login',status_code=200)
-def login_user(user_details: UserDetails, response : Response):
+def store_admin_login_user(user_details: UserDetails, response : Response):
     try:
         username = user_details.username
         password = user_details.password
         check_count = StoreUser.objects(username= username).count()
         if check_count == 1:
+            if StoreUser.objects(status= "A",username=username).count() != 1:
+                response.status_code = status.HTTP_403_FORBIDDEN
+                return { 'status': "error","message" :"Sorry your account is not active now"} 
             get_data = StoreUser.objects(username= username)
             get_data = get_data.to_json()
             data = json.loads(get_data)
@@ -59,14 +62,16 @@ def login_user(user_details: UserDetails, response : Response):
             if check_user == True:
                 token = auth_handler.encode_token(user_details.username)
                 return {"status":"success","token":token}
+            else:
+                response.status_code = status.HTTP_401_UNAUTHORIZED
+                return { 'status': "error","message" :"Invalid username and/or password"}
         else:
-            response.status_code = status.HTTP_401_UNAUTHORIZED
-            return { 'status': "error","message" :"Invalid username and/or password"}
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return { 'status': "error","message" :"Username not found"}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
         return { 'status': "error","message" :str(e)}
-
 
 # #Get User Data
 # @router.get('/{id}',status_code=200)

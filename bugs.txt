@@ -1,0 +1,8 @@
+1.data not found but you showed below message
+{
+  "status": "error",
+  "message": "Data not exist for this id cxsdds"
+}
+status code 422
+
+2.
