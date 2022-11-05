@@ -9,8 +9,8 @@ from configuration.config import dbname
 #Mongoengine Connectivity
 from mongoengine import *
 connect(dbname)
-
+import pymongo
 #Pymongo Connectivity
 from pymongo import MongoClient
 py_conn = MongoClient(f"mongodb://localhost:27017/{dbname}")
-
+collection=py_conn[dbname]

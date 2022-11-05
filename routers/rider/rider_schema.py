@@ -1,5 +1,7 @@
 from mongoengine import *
 from enum import Enum
+from datetime import datetime
+
 class Gender(str,Enum):
     male="male"
     female="female"
@@ -66,17 +68,7 @@ class DrivingDetail(Document):
         phodriving_license_expiry_datene=StringField(required=True)
 
 
-class  EmployeeDetail(Document):
-    user_type=EnumField(User_type,requird=True)
-    store_status=EnumField(store_status,requird=True)
-    password=StringField(requird=True)
-    created_at=StringField(requird=True)
-    updated_at=StringField(requird=True)
-    created_by=StringField(requird=True)
-    updated_by=StringField(requird=True)
-    store_id=StringField(requird=True)
-    employee_id=StringField(requird=True)
-
+   
 class SupportiveDocument(Document):
     rider_image_url = StringField()
     aadhar_image_url = StringField()
@@ -90,7 +82,14 @@ class Rider(Document):
     contact_detail=ReferenceField(ContactDetail)
     supportive_document = ReferenceField(SupportiveDocument)
     driving_license_detail = ReferenceField(DrivingDetail)
-    employee_detail = ReferenceField(EmployeeDetail)
+    user_type=EnumField(User_type,requird=True)
+    store_status=EnumField(store_status,requird=True)
+    password=StringField(requird=True)
+    created_by=StringField(requird=True)
+    updated_by=StringField(requird=True)
+    store_id=StringField(requird=True)
+    employee_id=StringField(requird=True)
+    created_at=DateTimeField(required=True,default=datetime.now())
+    updated_at=DateTimeField(required=True,default=datetime.now())
 
-class images(Document):
-    aadhar_image_url=StringField()
+    

@@ -222,13 +222,13 @@ def store_employee_all_data(user_data=Depends(auth_handler.auth_wrapper)):
     return {"status":"success","data":data}
 
 # #Delete store Data
-@router.delete('/employee/{id}',status_code=200)
+@router.delete('/employee/{id}',status_code=404)
 def delete_store_employee(id : str, response : Response,user_data=Depends(auth_handler.auth_wrapper)):
     try:
         get_data = Store_Employee.objects(id=id)
         if not get_data:
             response.status_code = status.HTTP_404_NOT_FOUND
-            return { 'status': "error","message" :f"Data  not exist for this id" }
+            return { 'status': "error","message" :f"Data not exist for this id" }
         get_data = get_data.to_json()
         userdata = json.loads(get_data)
         user_id = userdata[0]["_id"]
@@ -242,7 +242,7 @@ def delete_store_employee(id : str, response : Response,user_data=Depends(auth_h
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
         return { 'status': "error","message" :str(e)}
 #update store data
-@router.put('/employee/{id}')
+@router.put('/employee/{id}',status_code=202)
 async def  store_employee_update(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(),ifsc_code : str = Form(),user_type : User_type = Form(),store_status : store_status = Form(),user_data=Depends(auth_handler.auth_wrapper),user_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)): 
     try:
         get_data = Store_Employee.objects(id=id)

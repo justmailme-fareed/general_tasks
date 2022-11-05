@@ -4,245 +4,84 @@ Description : This is common validation file
 Author : Tree Integrated services
 Created Date : 30-9-2022
 """
-
-from email import message
 import re
-from fastapi import FastAPI, HTTPException
-
-speical_char=['!','@','#','$','%','^','&','*','+','=','(',')','{','}','[',']',':',' ']
-
-        
-import re 
-
-"""Common Validation"""
+from fastapi import  HTTPException
 class validation:
-    """Name Validation"""
-    def name_validation(v):
-        v= "".join(v.split())
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter name")
-        elif len(v)>20:
-            raise HTTPException(status_code=404, detail="Please enter valid name  ")
-
-        elif len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid name  ")
-
-        for i in v:
-            if i in speical_char:
-                raise HTTPException(status_code=404, detail="Please enter valid name")
-
-        return v
-    
-    def lastname_validation(v):
-        v= "".join(v.split())
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter lastname")
-        elif len(v)>20:
-            raise HTTPException(status_code=404, detail="Please enter valid lastname  ")
-
-        elif len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid lastname  ")
-
-        for i in v:
-            if i in speical_char:
-                raise HTTPException(status_code=404, detail="Please enter valid lastname")
-        return v
-    def street_name_validation(v):
-        v= "".join(v.split())
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter street_name")
-        elif len(v)>20:
-            raise HTTPException(status_code=404, detail="Please enter valid street_name  ")
-
-        elif len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid street_name  ")
-
-        for i in v:
-            if i in speical_char:
-                raise HTTPException(status_code=404, detail="Please enter valid street_name")
-        return v
-
-
-    def area_validation(v):
-        v= "".join(v.split())
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter area")
-        elif len(v)>20:
-            raise HTTPException(status_code=404, detail="Please enter valid area  ")
-
-        elif len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid area  ")
-
-        for i in v:
-            if i in speical_char:
-                raise HTTPException(status_code=404, detail="Please enter valid area")
-        return v
-
-
-    
-    def city_validation(v):
-        v= "".join(v.split())
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter city")
-        elif len(v)>20:
-            raise HTTPException(status_code=404, detail="Please enter valid city  ")
-
-        elif len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid city  ")
-
-        for i in v:
-            if i in speical_char:
-                raise HTTPException(status_code=404, detail="Please enter valid city")
-        return v
-    
-    
-
-    def state_validation(v):
-        v= "".join(v.split())
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter state")
-        elif len(v)>20:
-            raise HTTPException(status_code=404, detail="Please enter valid state  ")
-
-        elif len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid state  ")
-
-        for i in v:
-            if i in speical_char:
-                raise HTTPException(status_code=404, detail="Please enter valid state")
-        return v
+    """pincode Validation"""
     def pincode_validation(v):
         # BNZAA2318J
-        regex = "^[1-9]{1}[0-9]{2}\\s{0,1}[0-9]{3}$"
-        p = re.compile(regex)
+        pincode_regex = "^[1-9]{1}[0-9]{2}\\s{0,1}[0-9]{3}$"
+        pincode_compile = re.compile(pincode_regex)
         if(v == None):
-            raise HTTPException(status_code=404, detail="Please enter valid pincode  ")
-        m = re.match(p, str(v))
-        if m is None:
-            raise HTTPException(status_code=404, detail="Please enter valid pincode  ")
+            raise HTTPException(status_code=422, detail="Please enter valid pincode  ")
+        pin_match = re.match(pincode_compile, str(v))
+        if pin_match is None:
+            raise HTTPException(status_code=422, detail="Please enter valid pincode  ")
         else:
             return int(v)
     
+    """aadhar Validation"""
     def aadhar_validation(v):
-        regex = ("^[2-9]{1}[0-9]{3}\\" +
+        aadhar_regex = ("^[2-9]{1}[0-9]{3}\\" +
              "s[0-9]{4}\\s[0-9]{4}$")
-        p = re.compile(regex)
+        aadhar_compile = re.compile(aadhar_regex)
         if (v == None):
-            raise HTTPException(status_code=404, detail="Please enter valid aadhar number  ")
-        if(re.search(p, v)):
+            raise HTTPException(status_code=422, detail="Please enter valid aadhar number  ")
+        if(re.search(aadhar_compile, v)):
             return v
         else:
-            raise HTTPException(status_code=404, detail="Please enter valid aadhar number  ")
+            raise HTTPException(status_code=422, detail="Please enter valid aadhar number  ")
 
-
+    #Driving license validation
     def drivinglicense_validation(v):
-        regex = ("^(([A-Z]{2}[0-9]{2})" +
+        driving_license_regex = ("^(([A-Z]{2}[0-9]{2})" +
              "( )|([A-Z]{2}-[0-9]" +
              "{2}))((19|20)[0-9]" +
              "[0-9])[0-9]{7}$")
-     
-        p = re.compile(regex)
+        driving_license_compile= re.compile(driving_license_regex)
         if (v == None):
-            raise HTTPException(status_code=404, detail="Please enter valid aadhar number  ")
- 
-        if(re.search(p, v)):
+            raise HTTPException(status_code=422, detail="Please enter valid aadhar number  ")
+        if(re.search(driving_license_compile, v)):
             return v
         else:
-            raise HTTPException(status_code=404, detail="Please enter valid aadhar number  ")
-
-    def door_number(v):
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter door_number")
-       
+            raise HTTPException(status_code=422, detail="Please enter valid aadhar number  ")
+      
     """Mobile Number Validation"""
-    def mobile_validate(number):
-        number = number.strip()
-        if number == "":
-            raise HTTPException(status_code=404, detail="Please enter valid phone number  ")
-        mobile_pattern = re.compile("(0|91)?[6-9][0-9]{9}")
-        if mobile_pattern.match(number):
-            return number
-        else:
-            raise HTTPException(status_code=404, detail="Please enter valid phone number  ")
-
-
-    def alternatephone_validate(number):
-        if number is None:
-            number="null"
-            return number
-        else:
-
-            number = number.strip()
-            if number:
+    def mobile_validate(mobile_number,bool_value,module_name):
+        if mobile_number:
+            if bool_value == False:
+                mobile_number="null"
+                return mobile_number
+            else:
+                mobile_number = mobile_number.strip()
                 mobile_pattern = re.compile("(0|91)?[6-9][0-9]{9}")
-                if mobile_pattern.match(number):
-                    return number
+                if mobile_pattern.match(mobile_number):
+                    return mobile_number
                 else:
-                    raise HTTPException(status_code=404, detail="Please enter valid alternate number  ")
-
-        # if number == "":
-        #     return number
-        #     # raise HTTPException(status_code=404, detail="Please enter valid alternate number  ")
-        # # if number:
-        #     mobile_pattern = re.compile("(0|91)?[6-9][0-9]{9}")
-        #     if mobile_pattern.match(number):
-        #         return number
-        #     else:
-        #         raise HTTPException(status_code=404, detail="Please enter valid alternate number  ")
-
-
-
-    def account_number_validation(v):
-        if len(str(v))<11:
-            raise HTTPException(status_code=404, detail="Please enter valid account_number  ")
-
-        return int(v)
-
-
-    def ifsc_code_validation(v):
+                    raise HTTPException(status_code=422, detail=f"Please enter valid {module_name}")
+    
+    #IFSC code validation
+    def ifsc_code_validation(ifsc_code):
         # SBIN0125620
-        regex = "^[A-Z]{4}0[A-Z0-9]{6}$"
-        p = re.compile(regex)
-        if(v == None):
-            raise HTTPException(status_code=404, detail="Please enter valid ifsc_code  ")
-        if(re.search(p, v)):
-            return v
+        ifsc_regex = "^[A-Z]{4}0[A-Z0-9]{6}$"
+        ifsc_compile= re.compile(ifsc_regex)
+        if(ifsc_code == None):
+            raise HTTPException(status_code=422, detail="Please enter valid ifsc_code")
+        if(re.search(ifsc_compile, ifsc_code)):
+            return ifsc_code
         else:
-            raise HTTPException(status_code=404, detail="Please enter valid ifsc_code  ")
-
-    def bank_name_validation(v):
-        v= "".join(v.split())
-
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter bankname")
-        elif len(v)>20:
-            raise HTTPException(status_code=404, detail="Please enter valid bankname  ")
-
-        elif len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid bankname  ")
-        for i in v:
-            if i in speical_char:
-                raise HTTPException(status_code=404, detail="Please enter valid name")
-
-        return v
-
-     
-    def branch_name_validation(v):
-        v= "".join(v.split())
-
-        if v == '':
-            raise HTTPException(status_code=404, detail="Please enter branch_name")
-        elif len(v)>20 or len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid branch_name  ")
-
-        elif len(v)<3:
-            raise HTTPException(status_code=404, detail="Please enter valid branch_name  ")
-        for i in v:
-            if i in speical_char:
-                raise HTTPException(status_code=404, detail="Please enter valid name")
-        return v
+            raise HTTPException(status_code=422, detail="Please enter valid ifsc_code")
+    
+    #validation for firstname,lastname,city,are,bankname,branchname,state,strreetname,
+    def name_validation(v,module_name,start_limit,end_limit):
+        special_character_check =  re.compile('[@_!#$%^&*()<>?/\|}{~:]')
+        v = v.strip()
+        if v == "":
+            raise HTTPException(status_code=422, detail=f'{module_name} field required')
+        if special_character_check.search(v) != None:
+            raise HTTPException(status_code=422, detail=f'Special characters not allowed on {module_name} field')
+        if len(v) < start_limit or  len(v) > end_limit:
+            raise HTTPException(status_code=422, detail=f'{module_name} field {start_limit} - {end_limit} letters only allowed')
+        return "".join(v.split())
 
 
-    """Email Validation"""
-    def email_validate():
-        pass
