@@ -12,7 +12,7 @@ Then run below command
     chmod +x run.sh 
     
 Run project
-    ./run.sh
+   ./run.sh 
 
 Use the below command to install the requirements.txt file if you face any issues
     pip3 install -r requirements.txt 

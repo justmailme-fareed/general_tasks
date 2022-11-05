@@ -52,12 +52,12 @@ class storeDetails(Document):
     city=StringField(required=True)
     state=StringField(required=True)
     pincode=IntField(required=True)
-    aadhar_number=IntField(required=True)
+    aadhar_number=StringField(required=True)
 
 class BankDetail(Document):
     bank_name = StringField(required=True,min_length=3,max_length=30)
     branch_name = StringField(required=True,min_length=3,max_length=50)
-    account_number=StringField(required=True)
+    account_number=IntField(required=True)
     ifsc_code=StringField(required=True)
   
 class ContactDetail(Document):
@@ -86,7 +86,7 @@ class Rider(Document):
     status=EnumField(store_status, default=store_status.A,required=True)
     password=StringField(requird=True)
     store_id=ObjectIdField(requird=True)
-    employee_id=ObjectIdField(requird=True)
+    employee_id=StringField(requird=True)
     created_by=ObjectIdField(requird=True)
     updated_by=ObjectIdField(requird=True)
     created_at=DateTimeField(required=True,default=datetime.now())
