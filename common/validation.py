@@ -5,7 +5,7 @@ Author : Tree Integrated services
 Created Date : 30-9-2022
 """
 import re
-from fastapi import  HTTPException
+from fastapi import HTTPException
 class validation:
     """pincode Validation"""
     def pincode_validation(v):
@@ -13,10 +13,10 @@ class validation:
         pincode_regex = "^[1-9]{1}[0-9]{2}\\s{0,1}[0-9]{3}$"
         pincode_compile = re.compile(pincode_regex)
         if(v == None):
-            raise HTTPException(status_code=422, detail="Please enter valid pincode  ")
+            raise HTTPException(status_code=422, detail="Please enter valid pincode")
         pin_match = re.match(pincode_compile, str(v))
         if pin_match is None:
-            raise HTTPException(status_code=422, detail="Please enter valid pincode  ")
+            raise HTTPException(status_code=422, detail="Please enter valid pincode")
         else:
             return int(v)
     
@@ -26,11 +26,11 @@ class validation:
              "s[0-9]{4}\\s[0-9]{4}$")
         aadhar_compile = re.compile(aadhar_regex)
         if (v == None):
-            raise HTTPException(status_code=422, detail="Please enter valid aadhar number  ")
+            raise HTTPException(status_code=422, detail="Please enter valid aadhar number")
         if(re.search(aadhar_compile, v)):
             return v
         else:
-            raise HTTPException(status_code=422, detail="Please enter valid aadhar number  ")
+            raise HTTPException(status_code=422, detail="Please enter valid aadhar number")
 
     #Driving license validation
     def drivinglicense_validation(v):
@@ -40,11 +40,11 @@ class validation:
              "[0-9])[0-9]{7}$")
         driving_license_compile= re.compile(driving_license_regex)
         if (v == None):
-            raise HTTPException(status_code=422, detail="Please enter valid aadhar number  ")
+            raise HTTPException(status_code=422, detail="Please enter valid aadhar number")
         if(re.search(driving_license_compile, v)):
             return v
         else:
-            raise HTTPException(status_code=422, detail="Please enter valid aadhar number  ")
+            raise HTTPException(status_code=422, detail="Please enter valid aadhar number")
       
     """Mobile Number Validation"""
     def mobile_validate(mobile_number,bool_value,module_name):
