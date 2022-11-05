@@ -1,4 +1,4 @@
-import logging,os,json
+import logging,os,json,uuid
 from typing import List
 from fastapi import  APIRouter,Depends,Response,status,Form,UploadFile,File,Request,Body
 from pydantic import EmailStr
@@ -8,7 +8,6 @@ from typing import Optional,Union
 from routers.rider.rider_schema import Rider
 from common.validation import validation
 from routers.rider import strong_password
-import uuid
 from database import connection
 from pathlib import Path
 from enum import Enum
@@ -196,28 +195,27 @@ def rider_single_data(id : str,response : Response,username=Depends(auth_handler
         get_data = Rider.objects(id= id)
         if not get_data:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-            return { 'status': "error","message" :f"Rider not exist for this id"}
+            return {'status': "error","message" :f"Rider not exist for this id"}
         get_data = get_data.to_json()
         userdata = json.loads(get_data)
         del userdata[0]["_id"]
-        return { 'status': "success","data" :userdata[0]}
+        return {'status': "success","data" :userdata}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-        return { 'status': "error","message" :str(e)}
+        return {'status': "error","message" :str(e)}
  
 # get rider all data
 @router.get("/rider")
 def rider_all_data(response:Response,username=Depends(auth_handler.auth_wrapper)):
     rider_collection = connection.collection["rider"]
     if rider_collection.count_documents({})<1:
-        response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-        return {"status":"error","data":[],'riders_count':rider_collection.count_documents({})}
+        return {"status":"sucess","data":[],'message':"No rider data found"}
     data=[]
     for collection in rider_collection.find({}):
         collection["_id"] = str(collection["_id"])
         data.append(collection)
-    return {"status":"success","data":data,'riders_count':rider_collection.count_documents({})}
+    return {"status":"success","data":data,'count':rider_collection.count_documents({})}
 
 #Delete Rider Data
 @router.delete('/rider/{id}')
@@ -227,7 +225,7 @@ def delete_rider(id : str, response : Response,username=Depends(auth_handler.aut
         get_data = Rider.objects(id=id)
         if not get_data:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-            return { 'status': "error","message" :f"Rider not exist for this id"}
+            return {'status': "error","message" :f"Rider not exist for this id"}
         get_data = get_data.to_json()
         userdata = json.loads(get_data)
         rider_fullname=f"{userdata[0]['personal_detail']['firstname']} {userdata[0]['personal_detail']['lastname']}"
@@ -235,11 +233,11 @@ def delete_rider(id : str, response : Response,username=Depends(auth_handler.aut
         for image_url,rider_value in rider_image_url.items():
             os.remove(rider_value)
         Rider.objects(id = id).delete()
-        return { 'status': "success","message" :f"Rider {rider_fullname} deleted successfully"}
+        return {'status': "success","message" :f"Rider {rider_fullname} deleted successfully"}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-        return { 'status': "error","message" :str(e)}
+        return {'status': "error","message" :str(e)}
 
 # Rider Update Data
 @router.put('/rider/{id}',status_code=202)
@@ -249,7 +247,7 @@ async def rider_update(id:str,response : Response,request: Request,firstname : s
         get_data = Rider.objects(id=id)
         if not get_data:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-            return { 'status': "error","message" :f"Rider not exist for this id"}
+            return {'status': "error","message" :f"Rider not exist for this id"}
         get_data = get_data.to_json()
         userdata = json.loads(get_data)
         user_id = userdata[0]["_id"]
@@ -385,5 +383,5 @@ async def rider_update(id:str,response : Response,request: Request,firstname : s
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-        return { 'status': "error","message" :str(e)}
+        return {'status': "error","message" :str(e)}
  

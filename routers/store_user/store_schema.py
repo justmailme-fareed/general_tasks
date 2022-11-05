@@ -1,15 +1,18 @@
 from mongoengine import *
 from enum import Enum
+from datetime import datetime
+
+#Gender Enum Values
 class Gender(str,Enum):
     male="male"
     female="female"
     others="others"
-   
-class User_type(str,Enum):
-    rider='rider'
-    store='store'
-    user='user'
 
+#User type Enum Values  
+class User_type(str,Enum):
+    store='store_employee'
+
+#Store status Enum Values  
 class store_status(str,Enum):
     A='A'
     I='I'
@@ -17,8 +20,7 @@ class store_status(str,Enum):
     D='D'
     L='L'
 
-
-
+#Blood group Enum Values
 class Blood_group(str,Enum):
     A='A+'
     a='A-'
@@ -28,7 +30,8 @@ class Blood_group(str,Enum):
     ab='AB-'
     O='O+'
     o='O-'
-
+    
+#Jobtype Enum Values
 class Jobtype(str,Enum):
     fulltime='fulltime'
     partime='partime'
@@ -58,28 +61,24 @@ class ContactDetail(Document):
     phone=IntField(required=True,min_length=10,max_length=10)
     alternate_phone=IntField(required=True,min_length=10,max_length=10)
     email=EmailField(required=True)
-
-
-class  EmployeeDetail(Document):
-    user_type=EnumField(User_type,requird=True)
-    store_status=EnumField(store_status,requird=True)
-    password=StringField(requird=True)
-    created_at=StringField(requird=True)
-    updated_at=StringField(requird=True)
-    created_by=StringField(requird=True)
-    updated_by=StringField(requird=True)
-    store_id=StringField(requird=True)
-    employee_id=StringField(requird=True)
-
+   
 class SupportiveDocument(Document):
     user_image_url = StringField()
     aadhar_image_url = StringField()
     bank_passbook_url = StringField()
-
 
 class Store_Employee(Document):
     personal_detail = ReferenceField(storeDetails)
     bank_detail = ReferenceField(BankDetail)
     contact_detail=ReferenceField(ContactDetail)
     supportive_document = ReferenceField(SupportiveDocument)
-    employee_detail = ReferenceField(EmployeeDetail)
+    user_type=EnumField(User_type,requird=True)
+    store_status=EnumField(store_status,requird=True)
+    password=StringField(requird=True)
+    created_at=DateTimeField(requird=True,default=datetime.now())
+    updated_at=DateTimeField(requird=True,default=datetime.now())
+    created_by=StringField(requird=True)
+    updated_by=StringField(requird=True)
+    store_id=StringField(requird=True)
+    employee_id=StringField(requird=True)
+

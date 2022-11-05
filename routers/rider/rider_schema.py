@@ -2,11 +2,13 @@ from mongoengine import *
 from enum import Enum
 from datetime import datetime
 
+#Gender Enum Values
 class Gender(str,Enum):
     male="male"
     female="female"
     others="others"
-   
+
+#User type Enum Values
 class User_type(str,Enum):
     rider='rider'
     # store='store'
@@ -19,8 +21,7 @@ class store_status(str,Enum):
     D='D'
     L='L'
 
-
-
+#Blood group Enum Values
 class Blood_group(str,Enum):
     A='A+'
     a='A-'
@@ -31,6 +32,7 @@ class Blood_group(str,Enum):
     O='O+'
     o='O-'
 
+#Jobtype Enum Values
 class Jobtype(str,Enum):
     fulltime='fulltime'
     partime='partime'
@@ -66,15 +68,12 @@ class ContactDetail(Document):
 class DrivingDetail(Document):
         driving_license_number=IntField(required=True)
         phodriving_license_expiry_datene=StringField(required=True)
-
-
    
 class SupportiveDocument(Document):
     rider_image_url = StringField()
     aadhar_image_url = StringField()
     driving_license_url = StringField()
     bank_passbook_url = StringField()
-
 
 class Rider(Document):
     personal_detail = ReferenceField(storeDetails)
