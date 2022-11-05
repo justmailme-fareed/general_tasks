@@ -1,8 +1,27 @@
-1.data not found but you showed below message
+1.
+422	
+Error: Unprocessable Entity
+
+Response body
+Download
 {
   "status": "error",
-  "message": "Data not exist for this id cxsdds"
-}
-status code 422
+  "message": "Rider not exist for this id"
 
-2.
+  2.firstname = StringField(required=True,min_length=3,max_length=20)
+    lastname = StringField(required=True,min_length=3,max_length=20)
+
+  3.bloodgroup = EnumField(Blood_group,required=True)
+
+  phone=IntField(required=True,min_length=10,max_length=10)
+
+
+class ContactDetail(Document):
+    phone=StringField(required=True,min_length=10,max_length=10)
+    alternate_phone=StringField(required=True,min_length=10,max_length=10)
+    job_type = EnumField(Jobtype, default=Jobtype.fulltime,required=True)
+    email=EmailField(required=True)
+
+class DrivingDetail(Document):
+        driving_license_number=IntField(required=True)
+        phodriving_license_expiry_datene=StringField(required=True)

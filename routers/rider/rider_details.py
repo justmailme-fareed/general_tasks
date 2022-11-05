@@ -62,23 +62,24 @@ auth_handler = AuthHandler()
 
 #create rider
 @router.post('/rider',status_code=201)
-async def create_rider(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Body(default="2022-06-13"),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(max_length=11,min_length=11),ifsc_code : str = Form(),user_type : User_type = Form(),store_status : store_status = Form(),user_data=Depends(auth_handler.auth_wrapper),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
+async def create_rider(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Body(default="2022-06-13"),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : str = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Body(default="2022-06-13"),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : str = Form(),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
     data = await request.form()
     data = dict(data)
+    
     emp_id=[]
     user_id=user_data['id']
-    phone=validation.mobile_validate(phone,'True','phone number')
-    alternate_phone=validation.mobile_validate(alternate_phone,'False','alternate phone number')
-    firstname=validation.name_validation(firstname,'first_name',3,30)
-    lastname=validation.name_validation(lastname,'last_name',3,30)
-    street_name=validation.name_validation(street_name,'street_name',3,30)
-    area=validation.name_validation(area,'area',3,30)
-    state=validation.name_validation(state,'state',3,30)
-    city=validation.name_validation(city,'city',3,30)
-    bank_name=validation.name_validation(bank_name,'bank_name',3,30)
-    branch_name=validation.name_validation(branch_name,'branch_name',3,30)
+    firstname=validation.name_validation(firstname,'First Name',3,30)
+    lastname=validation.name_validation(lastname,'Last Name',3,30)
+    street_name=validation.name_validation(street_name,'Street name',3,30)
+    area=validation.name_validation(area,'Area',3,30)
+    state=validation.name_validation(state,'State',3,30)
+    city=validation.name_validation(city,'City',3,30)
     pincode=validation.pincode_validation(pincode)
     aadhar_number=validation.aadhar_validation(aadhar_number)
+    bank_name=validation.name_validation(bank_name,'Bank Name',3,30)
+    branch_name=validation.name_validation(branch_name,'Branch name',3,30)
+    phone=validation.mobile_validate(phone,'True','Phone Number')
+    alternate_phone=validation.mobile_validate(alternate_phone,'False','Alternate Phone Number')
     driving_license_number=validation.drivinglicense_validation(driving_license_number)
     ifsc_code=validation.ifsc_code_validation(ifsc_code)
     if city:
@@ -207,12 +208,12 @@ def rider_single_data(id : str,response : Response,username=Depends(auth_handler
  
 # get rider all data
 @router.get("/rider")
-def rider_all_data(response:Response,username=Depends(auth_handler.auth_wrapper)):
+def rider_all_data(response:Response,skip: int = 0, limit: int = 25,username=Depends(auth_handler.auth_wrapper)):
     rider_collection = connection.collection["rider"]
     if rider_collection.count_documents({})<1:
         return {"status":"sucess","data":[],'message':"No rider data found"}
     data=[]
-    for collection in rider_collection.find({}):
+    for collection in rider_collection.find({}).limit(limit).skip(skip):
         collection["_id"] = str(collection["_id"])
         data.append(collection)
     return {"status":"success","data":data,'count':rider_collection.count_documents({})}

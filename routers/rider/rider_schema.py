@@ -1,6 +1,7 @@
 from mongoengine import *
 from enum import Enum
 from datetime import datetime
+from bson.objectid import ObjectId
 
 #Gender Enum Values
 class Gender(str,Enum):
@@ -44,7 +45,7 @@ class storeDetails(Document):
     dob = StringField(required=True)
     bloodgroup = EnumField(Blood_group,required=True)
     gender = EnumField(Gender,required=True)
-    language_known=StringField(required=True)
+    language_known=ListField(required=True)
     door_number=IntField(required=True)
     street_name=StringField(required=True)
     area=StringField(required=True)
@@ -54,20 +55,20 @@ class storeDetails(Document):
     aadhar_number=IntField(required=True)
 
 class BankDetail(Document):
-    bank_name = StringField(required=True,min_length=3,max_length=20)
-    branch_name = StringField(required=True,min_length=3,max_length=20)
-    account_number=IntField(required=True,min_length=11,max_length=11)
+    bank_name = StringField(required=True,min_length=3,max_length=30)
+    branch_name = StringField(required=True,min_length=3,max_length=50)
+    account_number=StringField(required=True)
     ifsc_code=StringField(required=True)
   
 class ContactDetail(Document):
-    phone=IntField(required=True,min_length=10,max_length=10)
-    alternate_phone=IntField(required=True,min_length=10,max_length=10)
-    job_type = EnumField(Jobtype,required=True)
+    phone=StringField(required=True,min_length=10,max_length=10)
+    alternate_phone=StringField(required=True,min_length=10,max_length=10)
+    job_type = EnumField(Jobtype, default=Jobtype.fulltime,required=True)
     email=EmailField(required=True)
 
 class DrivingDetail(Document):
-        driving_license_number=IntField(required=True)
-        phodriving_license_expiry_datene=StringField(required=True)
+    driving_license_number=StringField(required=True)
+    phodriving_license_expiry_datene=StringField(required=True)
    
 class SupportiveDocument(Document):
     rider_image_url = StringField()
@@ -81,13 +82,13 @@ class Rider(Document):
     contact_detail=ReferenceField(ContactDetail)
     supportive_document = ReferenceField(SupportiveDocument)
     driving_license_detail = ReferenceField(DrivingDetail)
-    user_type=EnumField(User_type,requird=True)
-    store_status=EnumField(store_status,requird=True)
+    user_type=EnumField(User_type, default=User_type.rider,required=True)
+    status=EnumField(store_status, default=store_status.A,required=True)
     password=StringField(requird=True)
-    created_by=StringField(requird=True)
-    updated_by=StringField(requird=True)
-    store_id=StringField(requird=True)
-    employee_id=StringField(requird=True)
+    store_id=ObjectIdField(requird=True)
+    employee_id=ObjectIdField(requird=True)
+    created_by=ObjectIdField(requird=True)
+    updated_by=ObjectIdField(requird=True)
     created_at=DateTimeField(required=True,default=datetime.now())
     updated_at=DateTimeField(required=True,default=datetime.now())
 
