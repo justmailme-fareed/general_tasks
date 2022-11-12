@@ -64,7 +64,7 @@ class ContactDetail(Document):
     phone=StringField(required=True,min_length=10,max_length=10)
     alternate_phone=StringField(required=True,min_length=10,max_length=10)
     job_type = EnumField(Jobtype, default=Jobtype.fulltime,required=True)
-    email=EmailField(required=True)
+    email=EmailField(required=True,unique=True)
 
 class DrivingDetail(Document):
     driving_license_number=StringField(required=True)

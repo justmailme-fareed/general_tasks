@@ -25,7 +25,6 @@ router = APIRouter(
 
 auth_handler = AuthHandler()
 
-
 #Register User Data
 @router.post('/register', status_code=201)
 def store_admin_register_user(user_details: UserDetails, response : Response):
