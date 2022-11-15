@@ -85,7 +85,7 @@ class Rider(Document):
     user_type=EnumField(User_type, default=User_type.rider,required=True)
     status=EnumField(store_status, default=store_status.A,required=True)
     password=StringField(requird=True)
-    store_id=ObjectIdField(requird=True)
+    store_id=ObjectIdField()
     employee_id=StringField(requird=True)
     created_by=ObjectIdField(requird=True)
     updated_by=ObjectIdField(requird=True)

@@ -25,3 +25,14 @@ class ContactDetail(Document):
 class DrivingDetail(Document):
         driving_license_number=IntField(required=True)
         phodriving_license_expiry_datene=StringField(required=True)
+
+
+
+1.result['created_at'],result['updated_at'] = datetime.now(),datetime.now()
+
+This is not need
+
+2.door_number should define StringField
+
+
+3.

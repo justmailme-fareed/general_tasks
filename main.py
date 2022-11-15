@@ -16,8 +16,8 @@ import logging
 logging.basicConfig(filename='logs/store_user.log', filemode='w', format='%(name)s - %(levelname)s - %(module)s - %(message)s - %(asctime)s')
 
 app = FastAPI(
-    title="TIS Store User API",
-    description="Store User API - Tree Integrated Services",
+    title="TIS Store Dashboard API",
+    description="Store Dashboard API - Tree Integrated Services",
     version="v1",
     # terms_of_service="",
     # contact={
