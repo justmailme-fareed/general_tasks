@@ -201,7 +201,8 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
 def rider_single_data(id : str,response : Response,username=Depends(auth_handler.auth_wrapper)):
     try:
         id = id.strip()
-        get_data = Rider.objects(id= id)
+        user_id=username['id']
+        get_data = Rider.objects(id= id,store_id=user_id)
         if not get_data:
             response.status_code = status.HTTP_404_NOT_FOUND
             return {'status': "error","message" :f"Rider not exist for this id"}
@@ -251,7 +252,7 @@ def rider_all_data(response:Response,skip: int = 0, limit: int = 25,username=Dep
             inner_data["delivery_count"] = len(collection["employee_id"])
             inner_data["rating_percentage"] = 4.2
             data.append(inner_data)
-        return {"status":"success",'count':rider_collection.count_documents({"store_id":ObjectId("636fda856d9ead38291276a0")}),"data":data}
+        return {"status":"success",'count':rider_collection.count_documents({"store_id":ObjectId(user_id)}),"data":data}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY

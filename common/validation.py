@@ -53,7 +53,6 @@ class validation:
                 mobile_pattern = re.compile("^[789]\d{9}$")
                 if mobile_pattern.match(mobile_number):
                     return "".join(mobile_number.split())
-
                 else:
                     raise HTTPException(status_code=422, detail=f"Please enter valid {module_name}")
     

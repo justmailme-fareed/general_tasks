@@ -13,4 +13,4 @@ connect(dbname)
 #Pymongo Connectivity
 py_conn = MongoClient(f"mongodb://localhost:27017/{dbname}")
 collection=py_conn[dbname]
-db = py_conn["tis_ecommerce_service"]
+db = py_conn[dbname]

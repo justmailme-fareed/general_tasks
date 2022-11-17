@@ -11,7 +11,7 @@ from routers.user import user
 from routers.rider import rider_details
 from routers.store_user import store_details
 import logging
-
+import uvicorn
 #Logging 
 logging.basicConfig(filename='logs/store_user.log', filemode='w', format='%(name)s - %(levelname)s - %(module)s - %(message)s - %(asctime)s')
 
@@ -33,3 +33,5 @@ app.include_router(store_details.router)
 app.include_router(rider_details.router)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="static")
 
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8002)
