@@ -4,7 +4,6 @@ from pydantic import EmailStr
 from configuration.config import api_version
 from routers.user.user_auth import AuthHandler
 from typing import Optional,Union
-import uuid
 from routers.store_user.store_schema import Store_Employee
 from common.validation import validation
 from routers.rider import strong_password
@@ -12,7 +11,11 @@ from datetime import date,datetime
 from enum import Enum
 from database import connection
 from pathlib import Path
+from bson import ObjectId
 
+#time stamp for unique file name
+time_stamp = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
+file_name = time_stamp
 #strong password 
 password=strong_password.password
 
@@ -85,7 +88,7 @@ async def create_store_employee(response : Response,request: Request,firstname :
         if user_image_url:
             user_image_url_path = "uploads/store_user/user_image/"
             user_image_url_extension = user_image_url.filename.split(".")[-1]
-            user_image_url.filename = f"{uuid.uuid4()}.{user_image_url_extension}"
+            user_image_url.filename = f"{file_name}.{user_image_url_extension}"
             contents = await user_image_url.read()
             if not os.path.exists(f"{user_image_url_path}{user_image_url.filename}"):
                 create_path=Path(user_image_url_path).mkdir(parents=True, exist_ok=True)
@@ -94,9 +97,9 @@ async def create_store_employee(response : Response,request: Request,firstname :
     
         # Aadhar Image URL upload process
         if aadhar_image_url:
-            aadhar_image_url_path = "uploads/store_user/user_image"
+            aadhar_image_url_path = "uploads/store_user/aadhar_image/"
             aadhar_image_extension = aadhar_image_url.filename.split(".")[-1]
-            aadhar_image_url.filename = f"{uuid.uuid4()}.{aadhar_image_extension}"
+            aadhar_image_url.filename = f"{file_name}.{aadhar_image_extension}"
             contents = await aadhar_image_url.read()
             if not os.path.exists(f"{aadhar_image_url_path}{aadhar_image_url.filename}"):
                 create_aadhar_image_path=Path(aadhar_image_url_path).mkdir(parents=True, exist_ok=True)
@@ -105,9 +108,9 @@ async def create_store_employee(response : Response,request: Request,firstname :
 
         # Bank Passbook  Image URL upload process
         if bank_passbook_url:
-            bank_passbook_image_path = "uploads/store_user/bank_passbook"
+            bank_passbook_image_path = "uploads/store_user/bank_passbook/"
             bank_passbook_image_extension = bank_passbook_url.filename.split(".")[-1]
-            bank_passbook_url.filename = f"{uuid.uuid4()}.{bank_passbook_image_extension}"
+            bank_passbook_url.filename = f"{file_name}.{bank_passbook_image_extension}"
             contents = await bank_passbook_url.read()
             if not os.path.exists(f"{bank_passbook_image_path}{bank_passbook_url.filename}"):
                 create_path=Path(bank_passbook_image_path).mkdir(parents=True, exist_ok=True)
@@ -171,14 +174,26 @@ async def create_store_employee(response : Response,request: Request,firstname :
 @router.get('/employee/{id}',status_code=200)
 def store_employee_single_data(id : str,response : Response,user_data=Depends(auth_handler.auth_wrapper)):
     try:
-        get_data = Store_Employee.objects(id= id)
+        id=id.strip()
+        user_id=user_data['id']
+        get_data = Store_Employee.objects(id= id,store_id=user_id)
         if not get_data:
             response.status_code = status.HTTP_404_NOT_FOUND
             return {'status': "error","message" :f"Store Employee not exist for this id"}
         get_data = get_data.to_json()
         userdata = json.loads(get_data)
+        # del userdata[0]["_id"]
+        userdata[0]["store_id"] = userdata[0]["store_id"]["$oid"]
+        if userdata[0]["contact_detail"]["alternate_phone"] == None:
+            del userdata[0]["contact_detail"]["alternate_phone"]
+        del userdata[0]["password"]
         del userdata[0]["_id"]
-        return {'status': "success","data" :userdata}
+        del userdata[0]["created_by"]
+        del userdata[0]["updated_by"]
+        del userdata[0]["created_at"]
+        del userdata[0]["updated_at"]
+        del userdata[0]["store_id"]
+        return {'status': "success","data" :userdata[0]}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -187,21 +202,34 @@ def store_employee_single_data(id : str,response : Response,user_data=Depends(au
 # get all store employee data
 @router.get("/employee")
 def store_employee_all_data(response:Response,skip: int = 0, limit: int = 25,user_data=Depends(auth_handler.auth_wrapper)):
-        collections = connection.collection["store__employee"]
+        store_collection = connection.collection["store__employee"]
         if limit >0:
-            if collections.count_documents({})<1:
+            if store_collection.count_documents({})<1:
                 return {"status":"sucess","data":[],'message':"No store employee data found"}
-            elif limit > collections.count_documents({}):
+            elif limit > store_collection.count_documents({}):
                 response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
                 return {"status":"error","message":"You are finding out of limit Store Employees!"}
             data=[]
-            for store_collection in collections.find({}).limit(limit).skip(skip):
-                store_collection["_id"] = str(store_collection["_id"])
-                store_collection["store_id"] = str(store_collection["store_id"])
-                store_collection["created_by"] = str(store_collection["created_by"])
-                store_collection["updated_by"] = str(store_collection["updated_by"])
-                data.append(store_collection)
-            return {"status":"success","data":data,'count':collections.count_documents({})}
+            user_id=user_data['id']
+            for collection in store_collection.find({'store_id':ObjectId(user_id)}).limit(limit).skip(skip):
+                inner_data = {}
+                inner_data["id"] = str(collection["_id"])
+                inner_data["personal_detail"] = collection["personal_detail"]
+                inner_data["bank_detail"] = collection["bank_detail"]
+                if collection["contact_detail"]["alternate_phone"] == None:
+                    del collection["contact_detail"]["alternate_phone"]
+                inner_data["contact_detail"] = collection["contact_detail"]
+                inner_data["supportive_document"] = collection["supportive_document"]
+                inner_data["user_type"] = collection["user_type"]
+                inner_data["status"] = collection["status"]
+                inner_data["employee_id"] = collection["employee_id"]
+
+                """We have to be added into rider api"""
+                inner_data["report_count"] = len(collection["user_type"])
+                inner_data["delivery_count"] = len(collection["employee_id"])
+                inner_data["rating_percentage"] = 4.2
+                data.append(inner_data)
+            return {"status":"success",'count':store_collection.count_documents({"store_id":ObjectId(user_id)}),"data":data}
         else:
             response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
             return {"status":"error","message":"You are finding out of limit Store mployees!"}

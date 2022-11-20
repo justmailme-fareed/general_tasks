@@ -1,4 +1,4 @@
-import logging,os,json,uuid
+import logging,os,json
 from typing import List
 from fastapi import  APIRouter,Depends,Response,status,Form,UploadFile,File,Request,Body
 from pydantic import EmailStr
@@ -14,6 +14,10 @@ from enum import Enum
 from datetime import date,datetime
 from bson import ObjectId
 
+
+#time stamp for unique file name
+time_stamp = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
+file_name = time_stamp
 #strong password 
 password=strong_password.password
 
@@ -103,7 +107,7 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
         if rider_image_url:
             rider_image_url_path = "uploads/rider/profile/"
             rider_image_extension = rider_image_url.filename.split(".")[-1]
-            rider_image_url.filename = f"{uuid.uuid4()}.{rider_image_extension}"
+            rider_image_url.filename = f"{file_name}.{rider_image_extension}"
             contents = await rider_image_url.read()
             if not os.path.exists(f"{rider_image_url_path}{rider_image_url.filename}"):
                 create_path=Path(rider_image_url_path).mkdir(parents=True, exist_ok=True)
@@ -114,7 +118,7 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
         if aadhar_image_url:
             aadhar_image_url_path = "uploads/rider/aadhar/"
             aadhar_image_extension = aadhar_image_url.filename.split(".")[-1]
-            aadhar_image_url.filename = f"{uuid.uuid4()}.{aadhar_image_extension}"
+            aadhar_image_url.filename = f"{file_name}.{aadhar_image_extension}"
             contents = await aadhar_image_url.read()
             if not os.path.exists(f"{aadhar_image_url_path}{aadhar_image_url.filename}"):
                 create_aadhar_image_path=Path(aadhar_image_url_path).mkdir(parents=True, exist_ok=True)
@@ -125,7 +129,7 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
         if driving_license_url:
             driving_license_image_url_path = "uploads/rider/driving_license/"
             driving_license_image_extension = driving_license_url.filename.split(".")[-1]
-            driving_license_url.filename = f"{uuid.uuid4()}.{driving_license_image_extension}"
+            driving_license_url.filename = f"{file_name}.{driving_license_image_extension}"
             contents = await driving_license_url.read()
             if not os.path.exists(f"{driving_license_image_url_path}{driving_license_url.filename}"):
                 create_path=Path(driving_license_image_url_path).mkdir(parents=True, exist_ok=True)
@@ -136,7 +140,7 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
         if bank_passbook_url:
             bank_passbook_image_path = "uploads/rider/bank_passbook/"
             bank_passbook_image_extension = bank_passbook_url.filename.split(".")[-1]
-            bank_passbook_url.filename = f"{uuid.uuid4()}.{bank_passbook_image_extension}"
+            bank_passbook_url.filename = f"{file_name}.{bank_passbook_image_extension}"
             contents = await bank_passbook_url.read()
             if not os.path.exists(f"{bank_passbook_image_path}{bank_passbook_url.filename}"):
                 create_path=Path(bank_passbook_image_path).mkdir(parents=True, exist_ok=True)
@@ -231,7 +235,7 @@ def rider_all_data(response:Response,skip: int = 0, limit: int = 25,username=Dep
         rider_collection = connection.db["rider"]
         user_id=username['id']
         if rider_collection.count_documents({"store_id":ObjectId(user_id)}) < 1:
-            return {"status":"sucess","data":[],'message':"No rider data found"}
+            return {"status":"sucess","data":[],'message':"Rider data not exist!"}
         data=[]
         for collection in rider_collection.find({"store_id":ObjectId(user_id)}).limit(limit).skip(skip):
             inner_data = {}
