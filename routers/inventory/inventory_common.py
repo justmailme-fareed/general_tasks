@@ -12,7 +12,7 @@ import bson
 from bson import ObjectId
 from bson.json_util import dumps
 from bson.json_util import loads
-
+from .inventory_schema import store_product
 
 def check_product_image_details(response,product_image_id):
     brand_exists=db.padmin_product_image.count_documents({'_id':ObjectId(product_image_id)})
@@ -46,4 +46,13 @@ def check_record_exists(response,collection_name,where_condtion):
     else:
         response.status_code = status.HTTP_404_NOT_FOUND
         return { 'status': "error","message" :"Product ID does not exists"}
+
+def get_product_store_details(product_id,user_id):
+    if store_product.objects.filter(product_id=product_id,store_userid=user_id):
+        get_data = store_product.objects.get(product_id=product_id,store_userid=user_id)
+        get_data = get_data.to_json()
+        data = json.loads(get_data)
+        return { 'status': "success","data" :data}
+    else:
+        return { 'status': "error","message" :"no records found for given Product ID"}
 

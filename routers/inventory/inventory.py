@@ -7,8 +7,8 @@ Created Date : 23-11-2022
 
 from fastapi import APIRouter,Depends,Response,status,File,Request, UploadFile,Form
 from routers.user.user_auth import AuthHandler
-from .inventory_schema import product_inventory_schema,store_product,product_inventory
-from .inventory_common import check_product_count,get_brand_record_count,check_product_image_details,check_record_exists
+from .inventory_schema import product_inventory_schema,store_product
+from .inventory_common import check_product_count,get_brand_record_count,check_product_image_details,check_record_exists,get_product_store_details
 from configuration.config import api_version
 from database.connection import *
 from common.validation import form_validation
@@ -83,10 +83,18 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
         data=loads(dumps(get_data))
         product_detail=[]
         for p in data['product_detail']:
+            purchased_price=0
+            selling_price= 0
+            in_stock=0
             product_image_details=check_product_image_details(response,p['product_image_id'])
             if product_image_details['status']=="error":
                 return product_image_details
             thumbanil_url=product_image_details['data']['thumbanil_url']
+            product_store_data=get_product_store_details(p['product_id'],user['id'])
+            if product_store_data['status']=="success":
+                purchased_price= product_store_data['data']['purchased_price']
+                selling_price= product_store_data['data']['selling_price']
+                in_stock= product_store_data['data']['in_stock_count']
             product_detail.append(
             {
                 "product_id":str(p['product_id']),
@@ -94,11 +102,10 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
                 "quantity_detail":p['quantity_detail'],
                 "price_detail":p['price_detail'],
                 "thumbanil_url":thumbanil_url,
-                "purchased_price":0,
-                "selling_price":0,
-                "in_stock":0,
+                "purchased_price":purchased_price,
+                "selling_price":selling_price,
+                "in_stock":in_stock,
                 "sale_rate":"-",
-                "in_stock":0,
                 "status":p['status']
             })
         return { 'status': "success","count":product_count,"data":product_detail}
