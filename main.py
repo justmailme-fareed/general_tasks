@@ -10,6 +10,7 @@ from routers.user import user
 # from routers.rider import rider
 from routers.rider import rider_details
 from routers.store_user import store_details
+from routers.inventory import inventory
 import logging
 import uvicorn
 #Logging 
@@ -31,6 +32,8 @@ app.include_router(user.router)
 # app.include_router(rider.router)
 app.include_router(store_details.router)
 app.include_router(rider_details.router)
+app.include_router(inventory.router)
+
 app.mount("/uploads", StaticFiles(directory="uploads"), name="static")
 
 if __name__ == "__main__":

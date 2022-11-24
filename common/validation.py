@@ -6,6 +6,11 @@ Created Date : 30-9-2022
 """
 import re
 from fastapi import HTTPException
+
+special_character_check =  re.compile('[@_!;,`#$%^&*()<>?/\|}{~:]')
+objectID_check =  re.compile('^[0-9a-fA-F]{24}$')
+decimal_check = re.compile('^\d{0,8}(\.\d{1,4})?$')
+
 class validation:
     """pincode Validation"""
     def pincode_validation(v):
@@ -71,7 +76,7 @@ class validation:
     
     #validation for firstname,lastname,city,are,bankname,branchname,state,strreetname,
     def name_validation(v,module_name,start_limit,end_limit):
-        special_character_check =  re.compile('[@_!#$%^&*()<>?/\|}{~:]')
+        #special_character_check =  re.compile('[@_!#$%^&*()<>?/\|}{~:]')
         v = v.strip()
         if v == "":
             raise HTTPException(status_code=422, detail=f'{module_name} field required')
@@ -86,5 +91,47 @@ class validation:
             raise HTTPException(status_code=422, detail=f'Please enter valid account number')
         return int(v)
 
+    """ Decimal Number Validation"""
+    def decimal_number_validate(number,error_name):
+        number_str = str(number)
+        if number_str == "":
+            raise ValueError(f'{error_name} field required')
+        if decimal_check.match(number_str):
+            return number
+        else:
+            raise ValueError(f'{error_name} not a valid decimal number')
+
+    """ObjectID Validation"""
+    def objectID_validate(obj_id,error_name):  
+        obj_id = obj_id.strip()
+        if obj_id == "":
+            raise ValueError(f'{error_name} field required')
+        if objectID_check.match(obj_id):
+            return " ".join(obj_id.split())
+        else:
+            raise ValueError(f'Invalid objectid for {error_name} field')
+        
+        """Name Validation"""
+    def text_name_validate(name,start,end,error_name):  
+        name = name.strip()
+        if name == "":
+            raise ValueError(f'{error_name} field required')
+        if len(name) < start or  len(name) > end:
+            raise ValueError(f'{error_name} field {start} - {end} letters only allowed')
+        if special_character_check.search(name) != None:
+            raise ValueError(f'Special characters not allowed on {error_name} field')
+        return " ".join(name.split())
+
+"""Common Validation"""
+class form_validation:
+    """Name Validation"""
+    def form_name_validate(name,start,end,error_name):  
+        name = name.strip()
+        if len(name) < start or  len(name) > end:
+            raise ValueError(f'{error_name} field must be {start} - {end} letters')
+        if special_character_check.search(name) == None:
+            return " ".join(name.split())
+        else:
+            raise ValueError(f'Special characters are not allowed on {error_name} field')
 
 
