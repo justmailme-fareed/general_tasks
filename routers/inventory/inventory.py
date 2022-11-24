@@ -7,8 +7,8 @@ Created Date : 23-11-2022
 
 from fastapi import APIRouter,Depends,Response,status,File,Request, UploadFile,Form
 from routers.user.user_auth import AuthHandler
-from .inventory_schema import product_inventory_schema,store_product
-from .inventory_common import check_product_count,get_brand_record_count,check_product_image_details
+from .inventory_schema import product_inventory_schema,store_product,product_inventory
+from .inventory_common import check_product_count,get_brand_record_count,check_product_image_details,check_record_exists
 from configuration.config import api_version
 from database.connection import *
 from common.validation import form_validation
@@ -20,6 +20,7 @@ import bson
 from bson.json_util import loads
 from bson import ObjectId
 from bson.json_util import dumps
+from pydantic import parse_obj_as
 
 router = APIRouter(
     prefix=api_version + "/store",
@@ -107,31 +108,40 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
         return { 'status': "error","message" :str(e)}
 
 #Post Inventory Data
-@router.post('/product-inventory', status_code=201)
-async def product_inventory(response : Response,request: Request,product_inventory_details: List[product_inventory_schema],user=Depends(auth_handler.auth_wrapper)):
+@router.post('/product-inventory', status_code=200)
+async def product_inventory(response : Response,request: Request,product_inventory_details:product_inventory_schema,user=Depends(auth_handler.auth_wrapper)):
     try: 
-        get_data = product_inventory_details.to_json()
-        data = json.loads(get_data)
-        raise SystemExit(data)
         product_data=product_inventory_details.dict()
-        raise SystemExit(product_data)
-        product_id=product_data['product_id']
-        brand_name=product_data['brand_name']
-        product_id=product_id.strip()
-        brand_name=brand_name.strip()
-        if store_product.objects.filter(brand_name=brand_name,product_id=product_id,store_userid=user['id']):
-            get_data = store_product.objects.get(brand_name=brand_name,product_id=product_id,store_userid=user['id'])
-            get_data = get_data.to_json()
-            data = json.loads(get_data)
-            row_id=data['_id']['$oid']
-            product_data['updated_by']=user['id']
-            product_data['updated_at']=datetime.datetime.now()
-            store_product.objects(id=row_id).update(**product_data)
-        else:
-            product_data['padmin_id']=user['id']
-            product_data['created_by']=user['id']
-            product_data['updated_by']=user['id']
-            store_product(**product_data).save()
+        for p in product_data['products_list']:
+            product_id=p['product_id']
+            product_id=p['product_id']
+            brand_name=p['brand_name']
+            product_id=product_id.strip()
+            brand_name=brand_name.strip()
+            
+            check_produt_exists=check_record_exists(response,db.padmin_product,{"product_detail": {"$elemMatch": {"product_id": ObjectId(product_id)}}})
+            if check_produt_exists['status']=='error':
+                check_produt_exists['message']=f'Product ID {product_id} does not exists'
+                return check_produt_exists
+            if store_product.objects.filter(brand_name=brand_name,product_id=product_id,store_userid=user['id']):
+                get_data = store_product.objects.get(brand_name=brand_name,product_id=product_id,store_userid=user['id'])
+                get_data = get_data.to_json()
+                data = json.loads(get_data)
+                row_id=data['_id']['$oid']
+                current_stock=data['in_stock_count']
+                new_stock=current_stock+p['in_stock_count']
+                product_arr={}
+                product_arr['purchased_price']=p['purchased_price']
+                product_arr['selling_price']=p['selling_price']
+                product_arr['in_stock_count']=new_stock
+                product_arr['updated_by']=user['id']
+                product_arr['updated_at']=datetime.datetime.now()
+                store_product.objects(id=row_id).update(**product_arr)
+            else:
+                p['store_userid']=user['id']
+                p['created_by']=user['id']
+                p['updated_by']=user['id']
+                store_product(**p).save()
         return {'status': "success", "message" :"Product inventory details saved successfully"}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)

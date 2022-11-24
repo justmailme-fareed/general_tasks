@@ -9,7 +9,7 @@ from pydantic import BaseModel,Field,validator
 from database.connection import *
 from enum import Enum
 from uuid import UUID
-from typing import Union,Optional
+from typing import Union,Optional,List,Dict
 from bson.objectid import ObjectId
 import json
 import datetime
@@ -17,22 +17,24 @@ from common.validation import validation
 
 
 """Pydantic schema for Product Invetory """
-class product_inventory_schema(BaseModel):
+class product_inventory(BaseModel):
     product_id: str
     purchased_price: float
     selling_price: float
     in_stock_count: int
     brand_name: str
-    class Config:
-        schema_extra = {
-            "example": {
-                            "product_id": "637872d62cbfc90827960423",
-                            "purchased_price": 90.00,
-                            "selling_price": 100.00,
-                            "in_stock_count": 10,
-                            "brand_name": "aachi"
-            }
-        }
+    # class Config:
+    #     schema_extra = {
+    #         "example": {"product_detail":
+    #                     [{
+    #                         "product_id": "637872d62cbfc90827960423",
+    #                         "purchased_price": 90.00,
+    #                         "selling_price": 100.00,
+    #                         "in_stock_count": 10,
+    #                         "brand_name": "aachi"
+    #                     }]
+    #         }
+    #     }
     @validator("product_id")
     def product_id_validation(cls, value,field):
         return validation.objectID_validate(value,"Product ID")
@@ -50,6 +52,20 @@ class product_inventory_schema(BaseModel):
         return validation.text_name_validate(value,3,30,"Brand name")
 
 
+class product_inventory_schema(BaseModel):
+    products_list: List[product_inventory]
+    class Config:
+        schema_extra = {
+            "example": {"products_list":
+                        [{
+                            "product_id": "637872d62cbfc90827960423",
+                            "purchased_price": 90.00,
+                            "selling_price": 100.00,
+                            "in_stock_count": 10,
+                            "brand_name": "aachi"
+                        }]
+            }
+        }
         
 
 """Db schema for Product Invetory """

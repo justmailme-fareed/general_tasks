@@ -38,3 +38,12 @@ def get_brand_record_count(where_condition):
     brand_count=loads(dumps(brand_exists))
     return brand_count
 
+def check_record_exists(response,collection_name,where_condtion):
+    if collection_name.find_one(where_condtion):
+         get_data = collection_name.find_one(where_condtion)
+         data=loads(dumps(get_data))
+         return { 'status': "success","data" :data}
+    else:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return { 'status': "error","message" :"Product ID does not exists"}
+
