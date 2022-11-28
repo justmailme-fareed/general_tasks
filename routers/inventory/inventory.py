@@ -8,7 +8,7 @@ Created Date : 23-11-2022
 from fastapi import APIRouter,Depends,Response,status,File,Request, UploadFile,Form
 from routers.user.user_auth import AuthHandler
 from .inventory_schema import product_inventory_schema,store_product
-from .inventory_common import check_product_count,get_brand_record_count,check_product_image_details,check_record_exists,get_product_store_details
+from .inventory_common import check_product_count,check_product_image_details,check_record_exists,get_product_store_details,get_records,get_record_count
 from configuration.config import api_version
 from database.connection import *
 from common.validation import form_validation
@@ -33,33 +33,31 @@ auth_handler = AuthHandler()
 
 #Get Inventory Brand Data
 @router.get('/inventory/brand',status_code=200)
-def get_brands(response : Response ,parent_company_name:str, brand_name:Optional[str] = "",skip:int=0,limit:int=25,user=Depends(auth_handler.auth_wrapper)):
+def get_brands(response : Response ,parent_company_name:Optional[str] = "", brand_name:Optional[str] = "",skip:int=0,limit:int=25,user=Depends(auth_handler.auth_wrapper)):
     try:
-        result={}
+        records=[]
         parent_company_name=parent_company_name.strip()
         brand_name=brand_name.strip()
-        if brand_name:
-            brand_count=get_brand_record_count({"name" :brand_name,"parent_company_name" :parent_company_name,"status" :True})
-            if brand_count == 0:
-                return { 'status': "success","message" :"No record found for given parent company and brand combination"}
-            #product_count=0
-            get_data = db.padmin_product_brand.find_one({"parent_company_name" :parent_company_name,"name" :brand_name,"status" :True},{'_id': 0})
-            data=loads(dumps(get_data))
-            product_count=check_product_count(parent_company_name,brand_name)
-            record={"product_count":product_count,"name":data['name'],"logo_url":data['logo_url'],"status":data['status']}
-            result = { 'status': "success","data": record}
-        else:
-            records=[]
-            brand_count=get_brand_record_count({"parent_company_name" :parent_company_name,"status" :True})
-            if brand_count ==0:
-                return { 'status': "success","message" :"No record found for given parent company"}
-            get_data = db.padmin_product_brand.find({"parent_company_name" :parent_company_name,"status" :True},{'_id': 0}).skip(skip).limit(limit)
-            data=loads(dumps(get_data))
-            for i in data:
-                product_count=check_product_count(parent_company_name,i['name'])
-                records.append({"product_count":product_count,"name":i['name'],"logo_url":i['logo_url'],"status":i['status']})
-                result = { 'status': "success","count":brand_count,"data": records}
-        return result
+        message="No records found"
+        where_condtion={"status" :True}
+        if parent_company_name !='' and brand_name !='':
+            message="No record found for given parent company and brand combination"
+            where_condtion={"parent_company_name" :parent_company_name,"name" :brand_name,"status" :True}
+        elif parent_company_name !='' and brand_name =='':
+            message="No record found for given parent company"
+            where_condtion={"parent_company_name" :parent_company_name,"status" :True}
+        elif parent_company_name =='' and brand_name !='':
+            message="No record found for given brand"
+            where_condtion={"name" :brand_name,"status" :True}
+        
+        record_count = get_record_count(db.padmin_product_brand,where_condtion)
+        if record_count == 0:
+             return { 'status': "success","message" :message}
+        records_list = get_records(response,db.padmin_product_brand,where_condtion,skip,limit)
+        for i in records_list:
+            product_count=check_product_count(i['parent_company_name'],i['name'])
+            records.append({"product_count":product_count,'parent_company_name':i['parent_company_name'],"name":i['name'],"logo_url":i['logo_url'],"status":i['status']})
+        return { 'status': "success","count":record_count,"data": records}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -72,8 +70,8 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
     try:
         parent_company_name=parent_company_name.strip()
         brand_name=brand_name.strip()
-        brand_count=get_brand_record_count({"name" :brand_name,"parent_company_name" :parent_company_name,"status" :True})
-        if  brand_count == 0:
+        record_count = get_record_count(db.padmin_product_brand,{"name" :brand_name,"parent_company_name" :parent_company_name,"status" :True})
+        if  record_count == 0:
             response.status_code = status.HTTP_404_NOT_FOUND
             return { 'status': "error","message" :"Parent company and brand combination does not exists"}
         product_count=check_product_count(parent_company_name,brand_name)
