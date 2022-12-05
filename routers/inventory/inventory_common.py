@@ -25,14 +25,12 @@ def check_record_exists(response,collection_name,where_condtion):
         response.status_code = status.HTTP_404_NOT_FOUND
         return { 'status': "error","message" :"No record found"}
 
-def get_record(response,collection_name,where_condtion):
+def get_record(collection_name,where_condtion):
+    data={}
     if collection_name.find_one(where_condtion):
          get_data = collection_name.find_one(where_condtion)
          data=loads(dumps(get_data))
-         return { 'status': "success","data" :data}
-    else:
-        response.status_code = status.HTTP_404_NOT_FOUND
-        return { 'status': "success","message" :"No record found"}
+    return data
 
 def get_records(response,collection_name,where_condition,skip,limit):
     result={}
@@ -58,7 +56,7 @@ def check_product_image_details(response,product_image_id):
         response.status_code = status.HTTP_404_NOT_FOUND
         return { 'status': "error","message" :"Product image id does not exists"}
 
-
+#####
 def check_product_count(parent_company_name,brand_name):
     rec_count=0
     rec_check=db.padmin_product.aggregate([{"$match":{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name}},{"$project" : {"count": {'$size':"$product_detail" }}}])
@@ -67,7 +65,7 @@ def check_product_count(parent_company_name,brand_name):
         rec_count=data[0]['count']
     return rec_count
 
-
+####
 def get_product_store_details(product_id,user_id):
     if store_product.objects.filter(product_id=product_id,store_userid=user_id):
         get_data = store_product.objects.get(product_id=product_id,store_userid=user_id)

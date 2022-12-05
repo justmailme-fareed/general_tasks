@@ -8,7 +8,7 @@ Created Date : 23-11-2022
 from fastapi import APIRouter,Depends,Response,status,File,Request, UploadFile,Form
 from routers.user.user_auth import AuthHandler
 from .inventory_schema import product_inventory_schema,store_product
-from .inventory_common import check_product_count,check_product_image_details,check_record_exists,get_product_store_details,get_records,get_record_count
+from .inventory_common import check_product_image_details,check_record_exists,get_product_store_details,get_records,get_record_count,get_record
 from configuration.config import api_version
 from database.connection import *
 from common.validation import form_validation
@@ -29,6 +29,7 @@ router = APIRouter(
 )
 
 auth_handler = AuthHandler()
+
 
 
 #Get Inventory Brand Data
@@ -55,7 +56,7 @@ def get_brands(response : Response ,parent_company_name:Optional[str] = "", bran
              return { 'status': "success","message" :message}
         records_list = get_records(response,db.padmin_product_brand,where_condtion,skip,limit)
         for i in records_list:
-            product_count=check_product_count(i['parent_company_name'],i['name'])
+            product_count=get_record_count(db.padmin_product,{"company_detail.parent_company":i['parent_company_name'],"company_detail.company_brand":i['name'],"status" :True})
             records.append({"product_count":product_count,'parent_company_name':i['parent_company_name'],"name":i['name'],"logo_url":i['logo_url'],"status":i['status']})
         return { 'status': "success","count":record_count,"data": records}
     except Exception as e:
@@ -74,16 +75,27 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
         if  record_count == 0:
             response.status_code = status.HTTP_404_NOT_FOUND
             return { 'status': "error","message" :"Parent company and brand combination does not exists"}
-        product_count=check_product_count(parent_company_name,brand_name)
+        product_count=get_record_count(db.padmin_product,{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True})
         if product_count == 0:
             return { 'status': "success","message" :"No record found for given parent company and brand combination"}
-        get_data = db.padmin_product.find_one({"company_detail.parent_company" :parent_company_name,"company_detail.company_brand" :brand_name,"status" :True},{'_id': 0})
+        #product_count=get_records(db.padmin_product,{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True})
+        
+
+        # #pdata=db.padmin_product.aggregate([{'$match' :{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True}},{'$group' : {'_id' : "$product_common_id",'count': { '$sum': 1 }}}])
+        # pdata=db.padmin_product.aggregate([{'$match' :{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True}},{'$group' : {'_id' : "$product_common_id",'products': { '$push': "$$ROOT" },'count': { '$sum': 1 }}}])
+        # datap=loads(dumps(pdata))
+        # raise SystemExit(datap)
+
+        get_data = db.padmin_product.find({"company_detail.parent_company" :parent_company_name,"company_detail.company_brand" :brand_name,"status" :True})
         data=loads(dumps(get_data))
         product_detail=[]
-        for p in data['product_detail']:
+        for p in data:
             purchased_price=0
             selling_price= 0
             in_stock=0
+            saving_price=0
+            offer_percentage=0
+            special_offer_percentage=0
             product_image_details=check_product_image_details(response,p['product_image_id'])
             if product_image_details['status']=="error":
                 return product_image_details
@@ -93,18 +105,24 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
                 purchased_price= product_store_data['data']['purchased_price']
                 selling_price= product_store_data['data']['selling_price']
                 in_stock= product_store_data['data']['in_stock_count']
+                saving_price=selling_price-purchased_price
+                offer_percentage= (saving_price/selling_price)*100
+            price_detail={"purchased_price":purchased_price,"selling_price":selling_price,"saving_price":saving_price,"offer_percentage":int(offer_percentage)}
             product_detail.append(
             {
                 "product_id":str(p['product_id']),
                 "titile":p['titile'],
-                "quantity_detail":p['quantity_detail'],
-                "price_detail":p['price_detail'],
                 "thumbanil_url":thumbanil_url,
-                "purchased_price":purchased_price,
-                "selling_price":selling_price,
-                "in_stock":in_stock,
-                "sale_rate":"-",
-                "status":p['status']
+                "quantity_detail":p['quantity_detail'],
+                "price_detail":price_detail,
+                #"in_stock":in_stock,
+                "special_offer_percentage":special_offer_percentage, 
+                "rating":0, 
+                "brand":p['company_detail']['company_brand'], 
+                "in_stock":True, 
+                "is_saved":False, 
+                "notify_me":False, 
+                "product_track_message":"Only few left,Hurry!"
             })
         return { 'status': "success","count":product_count,"data":product_detail}
     except Exception as e:
@@ -119,17 +137,16 @@ async def product_inventory(response : Response,request: Request,product_invento
         product_data=product_inventory_details.dict()
         for p in product_data['products_list']:
             product_id=p['product_id']
-            product_id=p['product_id']
             brand_name=p['brand_name']
             product_id=product_id.strip()
             brand_name=brand_name.strip()
-            
-            check_produt_exists=check_record_exists(response,db.padmin_product,{"product_detail": {"$elemMatch": {"product_id": ObjectId(product_id)}}})
+            check_produt_exists=check_record_exists(response,db.padmin_product,{"product_id": ObjectId(product_id)})
             if check_produt_exists['status']=='error':
                 check_produt_exists['message']=f'Product ID {product_id} does not exists'
                 return check_produt_exists
-            if store_product.objects.filter(brand_name=brand_name,product_id=product_id,store_userid=user['id']):
-                get_data = store_product.objects.get(brand_name=brand_name,product_id=product_id,store_userid=user['id'])
+            product_common_id=check_produt_exists['data']['product_common_id']
+            if store_product.objects.filter(brand_name=brand_name,product_id=product_id,product_common_id=product_common_id,store_userid=user['id']):
+                get_data = store_product.objects.get(brand_name=brand_name,product_id=product_id,product_common_id=product_common_id,store_userid=user['id'])
                 get_data = get_data.to_json()
                 data = json.loads(get_data)
                 row_id=data['_id']['$oid']
@@ -143,6 +160,7 @@ async def product_inventory(response : Response,request: Request,product_invento
                 product_arr['updated_at']=datetime.datetime.now()
                 store_product.objects(id=row_id).update(**product_arr)
             else:
+                p['product_common_id']=product_common_id
                 p['store_userid']=user['id']
                 p['created_by']=user['id']
                 p['updated_by']=user['id']

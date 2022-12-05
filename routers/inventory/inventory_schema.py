@@ -23,18 +23,7 @@ class product_inventory(BaseModel):
     selling_price: float
     in_stock_count: int
     brand_name: str
-    # class Config:
-    #     schema_extra = {
-    #         "example": {"product_detail":
-    #                     [{
-    #                         "product_id": "637872d62cbfc90827960423",
-    #                         "purchased_price": 90.00,
-    #                         "selling_price": 100.00,
-    #                         "in_stock_count": 10,
-    #                         "brand_name": "aachi"
-    #                     }]
-    #         }
-    #     }
+    
     @validator("product_id")
     def product_id_validation(cls, value,field):
         return validation.objectID_validate(value,"Product ID")
@@ -71,6 +60,7 @@ class product_inventory_schema(BaseModel):
 """Db schema for Product Invetory """
 class store_product(Document):
     store_userid = ObjectIdField()
+    product_common_id = ObjectIdField()
     product_id = ObjectIdField()
     purchased_price = DecimalField()
     selling_price = DecimalField()
