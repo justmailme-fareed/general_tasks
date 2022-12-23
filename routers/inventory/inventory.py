@@ -69,6 +69,8 @@ def get_brands(response : Response ,parent_company_name:Optional[str] = "", bran
 @router.get('/inventory/product',status_code=200)
 def get_products(response : Response,parent_company_name:str,brand_name:str,user=Depends(auth_handler.auth_wrapper)):
     try:
+        subcategory_arr=[]
+        inventory_arr=[]
         parent_company_name=parent_company_name.strip()
         brand_name=brand_name.strip()
         record_count = get_record_count(db.padmin_product_brand,{"name" :brand_name,"parent_company_name" :parent_company_name,"status" :True})
@@ -80,11 +82,53 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
             return { 'status': "success","message" :"No record found for given parent company and brand combination"}
         #product_count=get_records(db.padmin_product,{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True})
         
+        #pdata=db.padmin_product.aggregate([{'$match' :{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True}},{'$group' : {'_id' : "$product_common_id",'products': { '$push': "$$ROOT" },'count': { '$sum': 1 }}}])
+        
+        pdata=db.padmin_product.aggregate([{'$match' :{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True}},{"$group" : {"_id" : "$product_common_id","products" : {"$push" : {"product_id": "$product_id","titile": "$titile","quantity_detail": "$quantity_detail","product_image_id":"$product_image_id"}},'count': { '$sum': 1 }}}])
+        datap=loads(dumps(pdata))
+        
+        for d in datap:
+            if d['count'] ==1:
+                inventory_arr.append(d['products'][0])
+            if d['count'] >1:
+                subcat_obj={'id': d['_id'],"main_title": d['products'][0]['titile'],"subcategory":d['products']}
+                subcategory_arr.append(subcat_obj)
+        for a in subcategory_arr:
+            for p in a['subcategory']:
+                purchased_price=0
+                selling_price= 0
+                in_stock=0
+                saving_price=0
+                offer_percentage=0
+                special_offer_percentage=0
+                in_stock_status=False
+                product_track_message="Only few left,Hurry!"
+                product_image_details=check_product_image_details(response,p['product_image_id'])
+                if product_image_details['status']=="error":
+                    return product_image_details
+                thumbanil_url=product_image_details['data']['thumbanil_url']
+                product_store_data=get_product_store_details(p['product_id'],user['id'])
+                if product_store_data['status']=="success":
+                    purchased_price= product_store_data['data']['purchased_price']
+                    selling_price= product_store_data['data']['selling_price']
+                    in_stock= product_store_data['data']['in_stock_count']
+                    if in_stock <= 3:
+                        in_stock_status=True
+                        product_track_message=f"Only {in_stock} left,Hurry!"
+                    saving_price=selling_price-purchased_price
+                    offer_percentage= (saving_price/selling_price)*100
+                price_detail={"purchased_price":purchased_price,"selling_price":selling_price,"saving_price":saving_price,"offer_percentage":int(offer_percentage)}
+            
+                p["thumbanil_url"]=thumbanil_url
+                p["price_detail"]=price_detail
+                p["rating"]=0
+                p["brand"]=""
+                p["in_stock"]=in_stock_status
+                p["is_saved"]=False
+                p["notify_me"]=False
+                p["product_track_message"]=product_track_message
 
-        # #pdata=db.padmin_product.aggregate([{'$match' :{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True}},{'$group' : {'_id' : "$product_common_id",'count': { '$sum': 1 }}}])
-        # pdata=db.padmin_product.aggregate([{'$match' :{"company_detail.parent_company":parent_company_name,"company_detail.company_brand":brand_name,"status" :True}},{'$group' : {'_id' : "$product_common_id",'products': { '$push': "$$ROOT" },'count': { '$sum': 1 }}}])
-        # datap=loads(dumps(pdata))
-        # raise SystemExit(datap)
+        raise SystemExit(subcategory_arr)
 
         get_data = db.padmin_product.find({"company_detail.parent_company" :parent_company_name,"company_detail.company_brand" :brand_name,"status" :True})
         data=loads(dumps(get_data))
@@ -96,6 +140,8 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
             saving_price=0
             offer_percentage=0
             special_offer_percentage=0
+            in_stock_status=False
+            product_track_message="Only few left,Hurry!"
             product_image_details=check_product_image_details(response,p['product_image_id'])
             if product_image_details['status']=="error":
                 return product_image_details
@@ -105,6 +151,9 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
                 purchased_price= product_store_data['data']['purchased_price']
                 selling_price= product_store_data['data']['selling_price']
                 in_stock= product_store_data['data']['in_stock_count']
+                if in_stock <= 3:
+                    in_stock_status=True
+                    product_track_message=f"Only {in_stock} left,Hurry!"
                 saving_price=selling_price-purchased_price
                 offer_percentage= (saving_price/selling_price)*100
             price_detail={"purchased_price":purchased_price,"selling_price":selling_price,"saving_price":saving_price,"offer_percentage":int(offer_percentage)}
@@ -119,10 +168,10 @@ def get_products(response : Response,parent_company_name:str,brand_name:str,user
                 "special_offer_percentage":special_offer_percentage, 
                 "rating":0, 
                 "brand":p['company_detail']['company_brand'], 
-                "in_stock":True, 
+                "in_stock":in_stock_status, 
                 "is_saved":False, 
                 "notify_me":False, 
-                "product_track_message":"Only few left,Hurry!"
+                "product_track_message":product_track_message
             })
         return { 'status': "success","count":product_count,"data":product_detail}
     except Exception as e:
