@@ -13,7 +13,7 @@ from bson import ObjectId
 from bson.json_util import dumps
 from bson.json_util import loads
 from .inventory_schema import store_product
-
+from common.http_operation import get_record,get_record_count
 
 
 def check_record_exists(response,collection_name,where_condtion):
@@ -25,25 +25,6 @@ def check_record_exists(response,collection_name,where_condtion):
         response.status_code = status.HTTP_404_NOT_FOUND
         return { 'status': "error","message" :"No record found"}
 
-def get_record(collection_name,where_condtion):
-    data={}
-    if collection_name.find_one(where_condtion):
-         get_data = collection_name.find_one(where_condtion)
-         data=loads(dumps(get_data))
-    return data
-
-def get_records(response,collection_name,where_condition,skip,limit):
-    result={}
-    if collection_name.find(where_condition):
-         get_data = collection_name.find(where_condition).skip(skip).limit(limit)
-         data=loads(dumps(get_data))
-         result=data
-    return result
-
-def get_record_count(collection_name,where_condition):
-    record_exists=collection_name.count_documents(where_condition)
-    record_count=loads(dumps(record_exists))
-    return record_count
 
 
 def check_product_image_details(response,product_image_id):
@@ -75,3 +56,30 @@ def get_product_store_details(product_id,user_id):
     else:
         return { 'status': "error","message" :"no records found for given Product ID"}
 
+
+
+def check_record_mapping(product_data,response):
+    try:
+        parent_company_id=product_data['parent_company_id']
+        brand_id=product_data['brand_id']
+        product_id=product_data['product_id']
+        check_parent_company=get_record_count(db.padmin_product_parent_company,{'_id':ObjectId(parent_company_id)})
+        if check_parent_company == 0:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return { 'status': "error","message" :f"No record found for given parent company ID {parent_company_id}"}
+        check_brand_maping=get_record_count(db.padmin_product_brand,{'_id':ObjectId(brand_id),'parent_company_id':ObjectId(parent_company_id)})
+        if check_brand_maping == 0:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return { 'status': "error","message" :f"No mapping found for given parent company ID {parent_company_id} and brand ID {brand_id}"}
+        check_product_exists=get_record_count(db.padmin_product,{'product_id':ObjectId(product_id)})
+        if check_product_exists == 0:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return { 'status': "error","message" :f"No product found for given product ID {product_id}"}
+        check_product_mapping=get_record_count(db.padmin_product,{'product_id':ObjectId(product_id),'company_detail.parent_company_id':ObjectId(parent_company_id),'company_detail.brand_id':ObjectId(brand_id)})
+        if check_product_mapping == 0:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return { 'status': "error","message" :f"No mapping found for given parent company ID {parent_company_id},brand ID {brand_id} and product ID {product_id}"}
+        return { 'status': "success","message" :"record found"}
+    except Exception as e:
+        response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+        return { 'status': "error","message" :str(e)}

@@ -7,7 +7,7 @@ Created Date : 30-9-2022
 import re
 from fastapi import HTTPException
 
-special_character_check =  re.compile('[@_!;,`#$%^&*()<>?/\|}{~:]')
+special_character_check= re.compile('[@_!#$"%^&*()<>?''`.+_=,;/\\\|}{~:[\]]') 
 objectID_check =  re.compile('^[0-9a-fA-F]{24}$')
 decimal_check = re.compile('^\d{0,8}(\.\d{1,4})?$')
 
@@ -114,6 +114,7 @@ class validation:
         """Name Validation"""
     def text_name_validate(name,start,end,error_name):  
         name = name.strip()
+        name = name.replace("'",'')
         if name == "":
             raise ValueError(f'{error_name} field required')
         if len(name) < start or  len(name) > end:
@@ -127,6 +128,7 @@ class form_validation:
     """Name Validation"""
     def form_name_validate(name,start,end,error_name):  
         name = name.strip()
+        name = name.replace("'",'')
         if len(name) < start or  len(name) > end:
             raise ValueError(f'{error_name} field must be {start} - {end} letters')
         if special_character_check.search(name) == None:

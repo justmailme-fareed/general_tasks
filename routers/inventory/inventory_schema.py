@@ -19,26 +19,31 @@ from common.validation import validation
 """Pydantic schema for Product Invetory """
 class product_inventory(BaseModel):
     product_id: str
+    parent_company_id: str
+    brand_id: str
     purchased_price: float
     selling_price: float
     in_stock_count: int
-    brand_name: str
     
     @validator("product_id")
-    def product_id_validation(cls, value,field):
+    def product_id_validation(cls, value):
         return validation.objectID_validate(value,"Product ID")
+    @validator("parent_company_id")
+    def company_id_validation(cls, value):
+        return validation.objectID_validate(value,"Parent Company ID")
+    @validator("brand_id")
+    def brand_id_validation(cls, value):
+        return validation.objectID_validate(value,"Brand ID")
     @validator("purchased_price")
-    def purchased_price_validation(cls, value,field):
+    def purchased_price_validation(cls, value):
         return validation.decimal_number_validate(value,"Purchased price")
     @validator("selling_price")
-    def selling_price_validation(cls, value,field):
+    def selling_price_validation(cls, value):
         return validation.decimal_number_validate(value,"Selling price")
     @validator("in_stock_count")
-    def in_stock_count_validation(cls, value,field):
+    def in_stock_count_validation(cls, value):
         return validation.decimal_number_validate(value,"In stock count")
-    @validator("brand_name")
-    def brand_name_validation(cls, value,field):
-        return validation.text_name_validate(value,3,30,"Brand name")
+    
 
 
 class product_inventory_schema(BaseModel):
@@ -48,10 +53,11 @@ class product_inventory_schema(BaseModel):
             "example": {"products_list":
                         [{
                             "product_id": "637872d62cbfc90827960423",
+                            "parent_company_id": "637872d62cbfc90827960423",
+                            "brand_id": "637872d62cbfc90827960423",
                             "purchased_price": 90.00,
                             "selling_price": 100.00,
                             "in_stock_count": 10,
-                            "brand_name": "aachi"
                         }]
             }
         }
@@ -60,12 +66,13 @@ class product_inventory_schema(BaseModel):
 """Db schema for Product Invetory """
 class store_product(Document):
     store_userid = ObjectIdField()
-    product_common_id = ObjectIdField()
+    parent_company_id = ObjectIdField()
+    brand_id = ObjectIdField()
+    product_ref_id = ObjectIdField()
     product_id = ObjectIdField()
     purchased_price = DecimalField()
     selling_price = DecimalField()
     in_stock_count = IntField()
-    brand_name = StringField()
     status = BooleanField(default=True,required=True)
     created_at = DateTimeField(default=datetime.datetime.now)
     updated_at = DateTimeField(default=datetime.datetime.now)
