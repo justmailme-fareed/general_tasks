@@ -37,7 +37,6 @@ auth_handler = AuthHandler()
 @router.get('/inventory/brand',status_code=200)
 def get_brands(response : Response ,brand_name:Optional[str] = "",skip:int=0,limit:int=25,user=Depends(auth_handler.auth_wrapper)):
     try:
-        records=[]
         brand_name=brand_name.strip()
         where_condtion={"status" :True}
         if brand_name:
@@ -45,14 +44,23 @@ def get_brands(response : Response ,brand_name:Optional[str] = "",skip:int=0,lim
         record_count = get_record_count(db.padmin_product_brand,where_condtion)
         if record_count == 0:
              return { 'status': "success","message" :"No records found"}
-        records_list = get_records(db.padmin_product_brand,where_condtion,skip,limit)
-        for i in records_list:
-            product_count=get_record_count(db.padmin_product,{"company_detail.brand_id":ObjectId(i['_id']),"status" :True})
-            parent_comp_details=get_record(db.padmin_product_parent_company,{"_id":ObjectId(i['parent_company_id'])})
-            parent_company={'id':str(parent_comp_details['_id']),'name':parent_comp_details['name']}
-            #records.append({"product_count":product_count,'parent_company':parent_company,"name":i['name'],"logo_url":i['logo_url'],"status":i['status']})
-            records.append({"id":str(i['_id']),"product_count":product_count,'parent_company':parent_company,"name":i['name'],"logo_url":i['logo_url'],"status":i['status']})
-        return { 'status': "success","count":record_count,"data": records}
+        #{'$group':{'_id':"$product_ref_id",'company_detail':{'$first':"$company_detail"},'category_detail':{'$first':"$category_detail"},'product_detail':{'$push':{'product_id':"$product_id",'title':"$title",'description':"$description",'quantity_detail':"$quantity_detail",'price_detail':"$price_detail",'shelf_detail':'$shelf_detail','product_image_id':"$product_image_id",'thumbnail_url':"$product_img_detail.thumbnail_url",'product_image_url':"$product_img_detail.product_image_url",'hsn_number':"$hsn_number",'gst':"$gst",'status':"$status"}}}} 
+        data=db.padmin_product_brand.aggregate([{'$match' :where_condtion},{'$lookup':{'from': "padmin_product_parent_company",'localField': "parent_company_id","foreignField":"_id",'as':"parent_company_detail"}},{'$unwind': "$parent_company_detail"},
+        #{'$lookup':{'from': "padmin_product",'localField': "_id","foreignField":"company_detail.brand_id",'as':"product_detail"}},{'$unwind': "$product_detail"},
+        #{'$group':{'_id':"$product_detail.company_detail.brand_id",'product_count':{'$sum':1}}},
+        #{'$group':{'_id':"$_id",'data':{'$push':{'parent_company':{'id':"$parent_company_detail._id",'name':"$parent_company_detail.name"},"name":"$name",'logo_url':"$logo_url",'status':"$status"}}}},
+        #{'$group': {'_id':"$product_detail.company_detail.brand_id",'product_count':{'$sum':1}}},
+        #{'$addFields': {'product_detail': {'$size': "$product_detail" }}},
+        #{'$project':{"id":"$_id",'data':'$data'}}])
+        {'$project':{"id":"$_id",'parent_company':{'id':"$parent_company_detail._id",'name':"$parent_company_detail.name"},"name":"$name",'logo_url':"$logo_url",'status':"$status","_id":0}},{ "$limit": skip + limit },{ "$skip": skip }])
+        records_list=loads(dumps(data))
+        #records_list = get_records(db.padmin_product_brand,where_condtion,skip,limit)
+        for rec in records_list:
+            product_count=get_record_count(db.padmin_product,{"company_detail.brand_id":ObjectId(rec['id']),"status" :True})
+            rec['product_count']=product_count
+            rec['id']=str(rec['id'])
+            rec['parent_company']['id']=str(rec['parent_company']['id'])
+        return { 'status': "success","count":record_count,"data": records_list}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -62,44 +70,28 @@ def get_brands(response : Response ,brand_name:Optional[str] = "",skip:int=0,lim
 @router.get('/inventory/product',status_code=200)
 def get_products(response : Response,product:Optional[str] = "",skip:int=0,limit:int=25,user=Depends(auth_handler.auth_wrapper)):
     try:
-        product_detail=[]
         product=product.strip()
         where_condtion={"status" :True}
         if product:
-            where_condtion={"titile" :product,"status" :True}
+            where_condtion={"title" :product,"status" :True}
         record_count = get_record_count(db.padmin_product,where_condtion)
         if record_count == 0:
              return { 'status': "success","message" :"No records found"}
-        records_list = get_records(db.padmin_product,where_condtion,skip,limit)
-        for p in records_list:
-            purchased_price=0
-            selling_price= 0
-            in_stock=0
-            product_track_message="Only few left,Hurry!"
-            product_image_details=check_product_image_details(response,p['product_image_id'])
-            if product_image_details['status']=="error":
-                return product_image_details
-            thumbnail_url=product_image_details['data']['thumbnail_url']
-            product_store_data=get_product_store_details(p['product_id'],user['id'])
-            if product_store_data['status']=="success":
-                purchased_price= product_store_data['data']['purchased_price']
-                selling_price= product_store_data['data']['selling_price']
-                in_stock= product_store_data['data']['in_stock_count']
-            product_detail.append(
-            {
-                "product_id":str(p['product_id']),
-                "product_ref_id":str(p['product_ref_id']),
-                "titile":p['titile'],
-                "thumbanil_url":thumbnail_url,
-                "quantity_detail":p['quantity_detail'],
-                "mrp":p['price_detail'],
-                "purchased_price":purchased_price,
-                "selling_price":selling_price, 
-                "in_stock_count":in_stock, 
-                "sale_rate":'-',
-                "status":p['status']
-            })
-        return { 'status': "success","count":record_count,"data": product_detail}
+        data=db.padmin_product.aggregate([{'$match' :where_condtion},
+        {'$lookup':{'from': "padmin_product_image",'localField': "product_image_id","foreignField":"_id",'as':"product_img_detail"}},{'$unwind': "$product_img_detail"},
+        {'$lookup':{'from': "store_product",'localField': "product_id","foreignField":"product_id",'as':"store_detail"}},
+        {'$unwind': {'path':"$store_detail",'preserveNullAndEmptyArrays': True}},
+        {'$project':{'product_id':"$product_id",'product_ref_id':"$product_ref_id",'title':"$title",'thumbnail_url':"$product_img_detail.thumbnail_url",'quantity_detail':"$quantity_detail",'mrp':"$price_detail",
+        "purchased_price":{'$cond': {'if': {'$ne': [ { '$type':'$store_detail.purchased_price'},'missing']},'then':'$store_detail.purchased_price','else': 0}},
+        "selling_price":{'$cond': {'if': {'$ne': [ { '$type':'$store_detail.selling_price'},'missing']},'then':'$store_detail.selling_price','else': 0}},
+        "in_stock_count":{'$cond': {'if': {'$ne': [ { '$type':'$store_detail.in_stock_count'},'missing']},'then':'$store_detail.in_stock_count','else': 0}},
+        "sale_rate":"-",'status':'$status',"_id":0}},{ "$limit": skip + limit },{ "$skip": skip }])
+        records_list=loads(dumps(data))
+        for rec in records_list:
+            rec['product_id']=str(rec['product_id'])
+            rec['product_ref_id']=str(rec['product_ref_id'])
+        
+        return { 'status': "success","count":record_count,"data": records_list}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
