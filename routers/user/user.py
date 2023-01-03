@@ -7,7 +7,7 @@ Created Date : 30-9-2022
 
 from fastapi import APIRouter,Depends,Response,status
 from .user_auth import AuthHandler
-from .user_schema import UserDetails,StoreUser
+from .user_schema import UserLoginDetails,StoreUser,UserRegisterDetails
 from configuration.config import api_version
 from database.connection import *
 import logging
@@ -27,7 +27,7 @@ auth_handler = AuthHandler()
 
 #Register User Data
 @router.post('/register', status_code=201)
-def store_admin_register_user(user_details: UserDetails, response : Response):
+def store_admin_register_user(user_details: UserRegisterDetails, response : Response):
     try:
         check_user = StoreUser.objects(username= user_details.username)
         if len(check_user) == 1:
@@ -44,7 +44,7 @@ def store_admin_register_user(user_details: UserDetails, response : Response):
 
 #Login User Data
 @router.post('/login',status_code=200)
-def store_admin_login_user(user_details: UserDetails, response : Response):
+def store_admin_login_user(user_details: UserLoginDetails, response : Response):
     try:
         username = user_details.username
         password = user_details.password
@@ -57,10 +57,13 @@ def store_admin_login_user(user_details: UserDetails, response : Response):
             get_data = get_data.to_json()
             data = json.loads(get_data)
             password = data[0]["password"]
+            # return get_data
             check_user = auth_handler.verify_password(user_details.password, password)
             if check_user == True:
                 token = auth_handler.encode_token(user_details.username)
-                return {"status":"success","token":token}
+                if data[0]["user_type"] == "store_admin":
+                    admin_type = "Store Admin"
+                return {"status":"success","username":data[0]["username"],"phone":data[0]["phone"],"email":data[0]["email"],"user_type":admin_type,"token":token}
             else:
                 response.status_code = status.HTTP_401_UNAUTHORIZED
                 return { 'status': "error","message" :"Invalid username and/or password"}

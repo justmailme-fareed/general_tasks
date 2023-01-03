@@ -34,7 +34,7 @@ app.include_router(store_details.router)
 app.include_router(rider_details.router)
 app.include_router(inventory.router)
 
-app.mount("/uploads", StaticFiles(directory="uploads"), name="static")
+# app.mount("/uploads", StaticFiles(directory="uploads"), name="static")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8002)

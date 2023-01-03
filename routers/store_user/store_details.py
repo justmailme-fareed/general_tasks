@@ -12,6 +12,13 @@ from enum import Enum
 from database import connection
 from pathlib import Path
 from bson import ObjectId
+import boto3
+cwd=os.getcwd()
+# s3 = boto3.resource('s3')
+s3=boto3.client('s3')
+
+bucket_name='tis-store-admin'
+client=boto3.client('s3')
 
 #time stamp for unique file name
 time_stamp = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
@@ -94,7 +101,11 @@ async def create_store_employee(response : Response,request: Request,firstname :
                 create_path=Path(user_image_url_path).mkdir(parents=True, exist_ok=True)
             with open(f"{user_image_url_path}{user_image_url.filename}", "wb") as f:
                 f.write(contents)
-    
+                local_file=f'{cwd}/{user_image_url_path}{user_image_url.filename}'
+                # return local_file
+                s3_file=f'{bucket_name}/{user_image_url_path}{user_image_url.filename}'
+                # return s3_file
+                a=client.upload_file(local_file,bucket_name,s3_file,ExtraArgs=dict(ContentType='image/png'))
         # Aadhar Image URL upload process
         if aadhar_image_url:
             aadhar_image_url_path = "uploads/store_user/aadhar_image/"
@@ -105,6 +116,12 @@ async def create_store_employee(response : Response,request: Request,firstname :
                 create_aadhar_image_path=Path(aadhar_image_url_path).mkdir(parents=True, exist_ok=True)
             with open(f"{aadhar_image_url_path}{aadhar_image_url.filename}", "wb") as f:
                 f.write(contents)
+                local_file=f'{cwd}/{aadhar_image_url_path}{aadhar_image_url.filename}'
+                # return local_file
+                s3_file=f'{bucket_name}/{aadhar_image_url_path}{aadhar_image_url.filename}'
+                # return s3_file
+                a=client.upload_file(local_file,bucket_name,s3_file,ExtraArgs=dict(ContentType='image/png'))
+    
 
         # Bank Passbook  Image URL upload process
         if bank_passbook_url:
@@ -116,6 +133,12 @@ async def create_store_employee(response : Response,request: Request,firstname :
                 create_path=Path(bank_passbook_image_path).mkdir(parents=True, exist_ok=True)
             with open(f"{bank_passbook_image_path}{bank_passbook_url.filename}", "wb") as f:
                 f.write(contents)
+                local_file=f'{cwd}/{bank_passbook_image_path}{bank_passbook_url.filename}'
+                # return local_file
+                s3_file=f'{bucket_name}/{bank_passbook_image_path}{bank_passbook_url.filename}'
+                # return s3_file
+                a=client.upload_file(local_file,bucket_name,s3_file,ExtraArgs=dict(ContentType='image/png'))
+    
         
         #generate employe_id 
         if city:
@@ -247,6 +270,20 @@ def delete_store_employee(id : str, response : Response,user_data=Depends(auth_h
         user_id = userdata[0]["_id"]
         rider_image_url=userdata[0]['supportive_document']
         store_employee_fullname=f"{userdata[0]['personal_detail']['firstname']} {userdata[0]['personal_detail']['lastname']}"
+        # return rider_image_url
+        s3= boto3.client('s3')
+        user=rider_image_url['user_image_url']
+        aadhar=rider_image_url['aadhar_image_url']
+        bank=rider_image_url['bank_passbook_url']
+        user=user.rsplit('/',1)
+        user=user[1]
+        aadhar=aadhar.rsplit('/',1)
+        aadhar=aadhar[1]
+        bank=bank.rsplit('/',1)
+        bank=bank[1]
+        response = s3.delete_objects(
+        Bucket=bucket_name,
+        Delete={"Objects": [{"Key": f"tis-store-admin/uploads/store_user/user_image/{user}"}, {"Key": f"tis-store-admin/uploads/store_user/aadhar_image/{aadhar}"}, {"Key": f"tis-store-admin/uploads/store_user/bank_passbook/{bank}"}]})
         for image_url,value in rider_image_url.items():
             os.remove(value)
         Store_Employee.objects(id = id).delete()

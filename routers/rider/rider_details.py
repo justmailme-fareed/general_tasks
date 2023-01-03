@@ -13,9 +13,14 @@ from pathlib import Path
 from enum import Enum
 from datetime import date,datetime
 from bson import ObjectId
+import boto3
+cwd=os.getcwd()
 
+bucket_name='tis-store-admin'
+client=boto3.client('s3')
+import boto3
 
-#time stamp for unique file name
+s3 = boto3.resource('s3')
 time_stamp = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
 file_name = time_stamp
 #strong password 
@@ -105,7 +110,7 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
 
         # Rider Image URL upload process
         if rider_image_url:
-            rider_image_url_path = "uploads/rider/profile/"
+            rider_image_url_path = f"uploads/rider/"
             rider_image_extension = rider_image_url.filename.split(".")[-1]
             rider_image_url.filename = f"{file_name}.{rider_image_extension}"
             contents = await rider_image_url.read()
@@ -113,10 +118,14 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
                 create_path=Path(rider_image_url_path).mkdir(parents=True, exist_ok=True)
             with open(f"{rider_image_url_path}{rider_image_url.filename}", "wb") as f:
                 f.write(contents)
-    
+                local_file=f'{cwd}/{rider_image_url_path}{rider_image_url.filename}'
+                # return local_file
+                s3_file=f'{bucket_name}/{rider_image_url_path}{rider_image_url.filename}'
+                # return s3_file
+                a=client.upload_file(local_file,bucket_name,s3_file,ExtraArgs=dict(ContentType='image/png'))
         # Aadhar Image URL upload process
         if aadhar_image_url:
-            aadhar_image_url_path = "uploads/rider/aadhar/"
+            aadhar_image_url_path = "uploads/aadhar/"
             aadhar_image_extension = aadhar_image_url.filename.split(".")[-1]
             aadhar_image_url.filename = f"{file_name}.{aadhar_image_extension}"
             contents = await aadhar_image_url.read()
@@ -124,10 +133,16 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
                 create_aadhar_image_path=Path(aadhar_image_url_path).mkdir(parents=True, exist_ok=True)
             with open(f"{aadhar_image_url_path}{aadhar_image_url.filename}", "wb") as f:
                 f.write(contents)
+                local_file=f'{cwd}/{aadhar_image_url_path}{aadhar_image_url.filename}'
+                # return local_file
+                s3_file=f'{bucket_name}/{aadhar_image_url_path}{aadhar_image_url.filename}'
+                # return s3_file
+                a=client.upload_file(local_file,bucket_name,s3_file,ExtraArgs=dict(ContentType='image/png'))
+        
 
         # Driving Licesne Image URL upload process
         if driving_license_url:
-            driving_license_image_url_path = "uploads/rider/driving_license/"
+            driving_license_image_url_path = "uploads/driving_license/"
             driving_license_image_extension = driving_license_url.filename.split(".")[-1]
             driving_license_url.filename = f"{file_name}.{driving_license_image_extension}"
             contents = await driving_license_url.read()
@@ -135,10 +150,16 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
                 create_path=Path(driving_license_image_url_path).mkdir(parents=True, exist_ok=True)
             with open(f"{driving_license_image_url_path}{driving_license_url.filename}", "wb") as f:
                 f.write(contents)
+                local_file=f'{cwd}/{driving_license_image_url_path}{driving_license_url.filename}'
+                # return local_file
+                s3_file=f'{bucket_name}/{driving_license_image_url_path}{driving_license_url.filename}'
+                # return s3_file
+                a=client.upload_file(local_file,bucket_name,s3_file,ExtraArgs=dict(ContentType='image/png'))
+        
 
         # Bank Passbook  Image URL upload process
         if bank_passbook_url:
-            bank_passbook_image_path = "uploads/rider/bank_passbook/"
+            bank_passbook_image_path = "uploads/bank_passbook/"
             bank_passbook_image_extension = bank_passbook_url.filename.split(".")[-1]
             bank_passbook_url.filename = f"{file_name}.{bank_passbook_image_extension}"
             contents = await bank_passbook_url.read()
@@ -146,6 +167,12 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
                 create_path=Path(bank_passbook_image_path).mkdir(parents=True, exist_ok=True)
             with open(f"{bank_passbook_image_path}{bank_passbook_url.filename}", "wb") as f:
                 f.write(contents)
+                local_file=f'{cwd}/{bank_passbook_image_path}{bank_passbook_url.filename}'
+                # return local_file
+                s3_file=f'{bucket_name}/{bank_passbook_image_path}{bank_passbook_url.filename}'
+                # return s3_file
+                a=client.upload_file(local_file,bucket_name,s3_file,ExtraArgs=dict(ContentType='image/png'))
+        
         
         result = {}
         # Rider Personal Details
@@ -268,7 +295,7 @@ def delete_rider(id : str, response : Response,username=Depends(auth_handler.aut
     try:
         id = id.strip()
         store_id=username['id']
-        get_data = Rider.objects(id=id,store_id=store_id)
+        get_data = Rider.objects(id=id)
         if not get_data:
             response.status_code = status.HTTP_404_NOT_FOUND
             return {'status': "error","message" :f"Rider not exist for this id"}
@@ -276,9 +303,28 @@ def delete_rider(id : str, response : Response,username=Depends(auth_handler.aut
         userdata = json.loads(get_data)
         rider_fullname=f"{userdata[0]['personal_detail']['firstname']} {userdata[0]['personal_detail']['lastname']}"
         rider_image_url=userdata[0]['supportive_document']
+        s3= boto3.client('s3')
+        rider=rider_image_url['rider_image_url']
+        aadhar=rider_image_url['aadhar_image_url']
+        driving=rider_image_url['driving_license_url']
+        bank=rider_image_url['bank_passbook_url']
+        rider=rider.rsplit('/',1)
+        rider=rider[1]
+        aadhar=aadhar.rsplit('/',1)
+        aadhar=aadhar[1]
+        driving=driving.rsplit('/',1)
+        driving=driving[1]
+        bank=bank.rsplit('/',1)
+        bank=bank[1]
+        response = s3.delete_objects(
+        Bucket=bucket_name,
+        Delete={"Objects": [{"Key": f"tis-store-admin/uploads/rider/{rider}"}, {"Key": f"tis-store-admin/uploads/aadhar/{aadhar}"}, {"Key": f"tis-store-admin/uploads/bank_passbook/{bank}"}, {"Key": f"tis-store-admin/uploads/driving_license/{driving}"}]})
         for image_url,rider_value in rider_image_url.items():
-            os.remove(rider_value)
-        Rider.objects(id = id,store_id=store_id).delete()
+            # del_image=f"{bucket_name}{rider_value}"
+            # os.remove(rider_value)
+            print(image_url,rider_value)
+        # return "sdf"
+        Rider.objects(id = id).delete()
         return {'status': "success","message" :f"Rider {rider_fullname} deleted successfully"}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
