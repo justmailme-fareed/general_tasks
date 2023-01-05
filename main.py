@@ -13,6 +13,7 @@ from routers.store_user import store_details
 from routers.inventory import inventory
 import logging
 import uvicorn
+from preload import pre_load
 #Logging 
 logging.basicConfig(filename='logs/store_user.log', filemode='w', format='%(name)s - %(levelname)s - %(module)s - %(message)s - %(asctime)s')
 
@@ -35,6 +36,9 @@ app.include_router(rider_details.router)
 app.include_router(inventory.router)
 
 # app.mount("/uploads", StaticFiles(directory="uploads"), name="static")
+
+#Preload function
+pre_load.store_user_insert()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8002)

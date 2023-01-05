@@ -57,8 +57,8 @@ class UserLoginDetails(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "username": "storeuser",
-                "password": "storeuser@123",
+                "username": "store1",
+                "password": "store1",
             }
         }
     #username validation

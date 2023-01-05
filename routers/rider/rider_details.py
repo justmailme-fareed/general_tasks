@@ -2,7 +2,7 @@ import logging,os,json
 from typing import List
 from fastapi import  APIRouter,Depends,Response,status,Form,UploadFile,File,Request,Body
 from pydantic import EmailStr
-from configuration.config import api_version
+from configuration.config import api_version,s3_
 from routers.user.user_auth import AuthHandler
 from typing import Optional,Union
 from routers.rider.rider_schema import Rider
@@ -15,6 +15,9 @@ from datetime import date,datetime
 from bson import ObjectId
 import boto3
 cwd=os.getcwd()
+import requests
+import mimetypes
+
 
 bucket_name='tis-store-admin'
 client=boto3.client('s3')
@@ -60,11 +63,59 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 auth_handler = AuthHandler()
+from PIL import Image
+
+from io import BytesIO
+
 
 #create rider
 @router.post('/rider',status_code=201)
 async def create_rider(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date,None] = Form(...),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : str = Form(),aadhar_number : str = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Form(...),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(unique=True),bank_name : str = Form(),branch_name : str = Form(),account_number : int = Form(...),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):   
         """Rider exists check"""
+       
+        data = await request.form()
+        data = dict(data)
+
+        fol_path = "rider/"+aadhar_image_url.filename
+        aadhar_image_url.seek(0)
+        s3_.upload_fileobj(aadhar_image_url.file,"tis-product-admin",fol_path,ExtraArgs={"ACL": "public-read",'ContentType': 'multerS3.AUTO_CONTENT_TYPE'})
+        raise SystemExit(aadhar_image_url)
+        img_resized = Image.open(data["aadhar_image_url"].file)
+        if img_resized.mode in ("RGBA", "P"):
+            img_resized = img_resized.convert("RGB")
+        actual_image = BytesIO()
+        # return data
+        # print(data)
+        # contents = data["aadhar_image_url"].filename
+        # contents = data["aadhar_image_url"].filename
+        # print(data["aadhar_image_url"])
+        # print(len(data["aadhar_image_url"].read()))
+        fol_path = "rider/"+data["aadhar_image_url"].filename
+        # data["aadhar_image_url"].seek(0)
+        # with open(data["aadhar_image_url"].filename, 'rb') as data:
+        # s3_new.upload_file("/Users/sampathp/Downloads/sambar2.jpeg", 'tis-product-admin', 'mykey')
+        img_resized.save(actual_image, 'JPEG', quality=IMAGE_QUALITY,optimize=True)
+
+        actual_image.seek(0)
+
+        s3_new.upload_fileobj(actual_image,"tis-product-admin",fol_path,ExtraArgs={"ACL": "public-read",'ContentType': 'multerS3.AUTO_CONTENT_TYPE'})
+        return 1
+        s3_.upload_file(contents, 'tis-product-admin', 'mykey')
+        # print(contents)
+        # return data["aadhar_image_url"].filename
+        # s3.Bucket("tis-store-admin").upload_file(data["aadhar_image_url"].filename,data["aadhar_image_url"].filename)
+        # s3.upload_file(
+        #     Filename=data["aadhar_image_url"].filename,
+        #     Bucket="tis-store-admin",
+        #     Key="new_file.csv",
+        # )
+        # print(data["aadhar_image_url"].filename)
+        # imageResponse = requests.get(data["aadhar_image_url"].filename, stream=True).raw
+        # content_type = imageResponse.headers['content-type']
+        # extension = mimetypes.guess_extension(content_type)
+        # s3.upload_fileobj(imageResponse, "tis-store-admin", file_name + extension)
+        print("Upload Successful")
+        return data
         user_id = user_data['id']
         check_duplicate_rider = connection.db.rider.find({"store_id":ObjectId("636fda856d9ead38291276a0"),"personal_detail.firstname":firstname.strip()})
         check_duplicate_rider = len(list(check_duplicate_rider))

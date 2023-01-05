@@ -25,22 +25,22 @@ router = APIRouter(
 
 auth_handler = AuthHandler()
 
-#Register User Data
-@router.post('/register', status_code=201)
-def store_admin_register_user(user_details: UserRegisterDetails, response : Response):
-    try:
-        check_user = StoreUser.objects(username= user_details.username)
-        if len(check_user) == 1:
-            response.status_code = status.HTTP_409_CONFLICT
-            return { 'status': "error","message" :f"{user_details.username} is already there"} 
-        user_data = dict(user_details)
-        user_data["password"] = auth_handler.get_password_hash(user_details.password)
-        StoreUser(**user_data).save()
-        return {'status': "success","message" :f"{user_details.username} Created Successfully"}
-    except Exception as e:
-        logging.error("Exception occurred", exc_info=True)
-        response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-        return { 'status': "error","message" :str(e)}
+# #Register User Data
+# @router.post('/register', status_code=201)
+# def store_admin_register_user(user_details: UserRegisterDetails, response : Response):
+#     try:
+#         check_user = StoreUser.objects(username= user_details.username)
+#         if len(check_user) == 1:
+#             response.status_code = status.HTTP_409_CONFLICT
+#             return { 'status': "error","message" :f"{user_details.username} is already there"} 
+#         user_data = dict(user_details)
+#         user_data["password"] = auth_handler.get_password_hash(user_details.password)
+#         StoreUser(**user_data).save()
+#         return {'status': "success","message" :f"{user_details.username} Created Successfully"}
+#     except Exception as e:
+#         logging.error("Exception occurred", exc_info=True)
+#         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+#         return { 'status': "error","message" :str(e)}
 
 #Login User Data
 @router.post('/login',status_code=200)
