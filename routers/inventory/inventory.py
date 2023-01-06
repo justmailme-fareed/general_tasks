@@ -93,7 +93,6 @@ def get_products(response : Response,product:Optional[str] = "",skip:int=0,limit
             return error_result 
         data=db.padmin_product.aggregate([{'$match' :where_condtion},
         {'$lookup':{'from': "padmin_product_image",'localField': "product_image_id","foreignField":"_id",'as':"product_img_detail"}},{'$unwind': "$product_img_detail"},
-        #{'$lookup':{'from': "store_product",'localField': "product_id","foreignField":"product_id",'as':"store_detail"}},
         {'$lookup': {'from': "store_product",'localField': "product_id","foreignField":"product_id",'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ["$store_userid",ObjectId(user['id'])]}]}}}],'as': "store_detail"}},
         {'$unwind': {'path':"$store_detail",'preserveNullAndEmptyArrays': warehouse_flag}},
         {'$project':{'product_id':"$product_id",'product_ref_id':"$product_ref_id",'title':"$title",'thumbnail_url':"$product_img_detail.thumbnail_url",'quantity_detail':"$quantity_detail",'mrp':"$price_detail",
