@@ -15,7 +15,11 @@ import json
 import datetime
 from common.validation import validation
 
-
+"""Warehouse types """
+class warehouse_list(str, Enum):
+    All="all",
+    Store="store",
+  
 """Pydantic schema for Product Invetory """
 class product_inventory(BaseModel):
     product_id: str

@@ -7,7 +7,7 @@ Created Date : 23-11-2022
 
 from fastapi import APIRouter,Depends,Response,status,File,Request, UploadFile,Form
 from routers.user.user_auth import AuthHandler
-from .inventory_schema import product_inventory_schema,store_product
+from .inventory_schema import product_inventory_schema,store_product,warehouse_list
 from .inventory_common import check_record_mapping,check_product_image_details,get_product_store_details
 from common.http_operation import get_record,get_records,get_record_count
 from configuration.config import api_version
@@ -35,24 +35,25 @@ auth_handler = AuthHandler()
 
 #Get Inventory Brand Data
 @router.get('/inventory/brand',status_code=200)
-def get_brands(response : Response ,brand_name:Optional[str] = "",skip:int=0,limit:int=25,user=Depends(auth_handler.auth_wrapper)):
+def get_brands(response : Response ,brand_name:Optional[str] = "",skip:int=0,limit:int=1000,user=Depends(auth_handler.auth_wrapper)):
     try:
+        status_code = status.HTTP_200_OK
+        error_result= { 'status': "success","message" :"No records found","data":[]}
         brand_name=brand_name.strip()
         where_condtion={"status" :True}
         if brand_name:
-            where_condtion={"name" :brand_name,"status" :True}
+            where_condtion={"name" :{ '$regex': brand_name},"status" :True}
+            status_code = status.HTTP_404_NOT_FOUND
+            error_result= { 'status': "error","message" :f"No records found for given name {brand_name}"}
         record_count = get_record_count(db.padmin_product_brand,where_condtion)
         if record_count == 0:
-             return { 'status': "success","message" :"No records found"}
-        #{'$group':{'_id':"$product_ref_id",'company_detail':{'$first':"$company_detail"},'category_detail':{'$first':"$category_detail"},'product_detail':{'$push':{'product_id':"$product_id",'title':"$title",'description':"$description",'quantity_detail':"$quantity_detail",'price_detail':"$price_detail",'shelf_detail':'$shelf_detail','product_image_id':"$product_image_id",'thumbnail_url':"$product_img_detail.thumbnail_url",'product_image_url':"$product_img_detail.product_image_url",'hsn_number':"$hsn_number",'gst':"$gst",'status':"$status"}}}} 
-        data=db.padmin_product_brand.aggregate([{'$match' :where_condtion},{'$lookup':{'from': "padmin_product_parent_company",'localField': "parent_company_id","foreignField":"_id",'as':"parent_company_detail"}},{'$unwind': "$parent_company_detail"},
-        #{'$lookup':{'from': "padmin_product",'localField': "_id","foreignField":"company_detail.brand_id",'as':"product_detail"}},{'$unwind': "$product_detail"},
-        #{'$group':{'_id':"$product_detail.company_detail.brand_id",'product_count':{'$sum':1}}},
-        #{'$group':{'_id':"$_id",'data':{'$push':{'parent_company':{'id':"$parent_company_detail._id",'name':"$parent_company_detail.name"},"name":"$name",'logo_url':"$logo_url",'status':"$status"}}}},
-        #{'$group': {'_id':"$product_detail.company_detail.brand_id",'product_count':{'$sum':1}}},
-        #{'$addFields': {'product_detail': {'$size': "$product_detail" }}},
-        #{'$project':{"id":"$_id",'data':'$data'}}])
-        {'$project':{"id":"$_id",'parent_company':{'id':"$parent_company_detail._id",'name':"$parent_company_detail.name"},"name":"$name",'logo_url':"$logo_url",'status':"$status","_id":0}},{ "$limit": skip + limit },{ "$skip": skip }])
+            response.status_code = status_code
+            return error_result
+        data=db.padmin_product_brand.aggregate([{'$match' :where_condtion},
+        {'$lookup':{'from': "padmin_product_parent_company",'localField': "parent_company_id","foreignField":"_id",'as':"parent_company_detail"}},
+        {'$unwind': "$parent_company_detail"},
+        {'$project':{"id":"$_id",'parent_company':{'id':"$parent_company_detail._id",'name':"$parent_company_detail.name"},"name":"$name",'logo_url':"$logo_url",'status':"$status","_id":0}},
+        { "$limit": skip + limit },{ "$skip": skip }])
         records_list=loads(dumps(data))
         #records_list = get_records(db.padmin_product_brand,where_condtion,skip,limit)
         for rec in records_list:
@@ -68,19 +69,33 @@ def get_brands(response : Response ,brand_name:Optional[str] = "",skip:int=0,lim
 
 #Get Inventory Product Data
 @router.get('/inventory/product',status_code=200)
-def get_products(response : Response,product:Optional[str] = "",skip:int=0,limit:int=25,user=Depends(auth_handler.auth_wrapper)):
+def get_products(response : Response,product:Optional[str] = "",skip:int=0,limit:int=1000, warehouse: warehouse_list =(warehouse_list.All),user=Depends(auth_handler.auth_wrapper)):
     try:
+        warehouse_flag=True
+        status_code = status.HTTP_200_OK
+        error_result= { 'status': "success","message" :"No records found","data":[]}
         product=product.strip()
         where_condtion={"status" :True}
         if product:
-            where_condtion={"title" :product,"status" :True}
-        record_count = get_record_count(db.padmin_product,where_condtion)
-        if record_count == 0:
-             return { 'status': "success","message" :"No records found"}
+            where_condtion={"title" :{ '$regex': product},"status" :True}
+            status_code = status.HTTP_404_NOT_FOUND
+            error_result= { 'status': "error","message" :f"No records found for given product {product}"}
+        if warehouse=='store':
+            warehouse_flag=False
+        rec_data=db.padmin_product.aggregate([{'$match' :where_condtion},
+        {'$lookup': {'from': "store_product",'localField': "product_id","foreignField":"product_id",'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ["$store_userid",ObjectId(user['id'])]}]}}}],'as': "store_detail"}},
+        {'$unwind': {'path':"$store_detail",'preserveNullAndEmptyArrays': warehouse_flag}},
+        { '$group': { '_id':0, 'count': { '$sum': 1 } } },
+        {'$project':{"count":1,"_id":0}}])
+        rec_count=loads(dumps(rec_data))
+        if not rec_count:
+            response.status_code = status_code
+            return error_result 
         data=db.padmin_product.aggregate([{'$match' :where_condtion},
         {'$lookup':{'from': "padmin_product_image",'localField': "product_image_id","foreignField":"_id",'as':"product_img_detail"}},{'$unwind': "$product_img_detail"},
-        {'$lookup':{'from': "store_product",'localField': "product_id","foreignField":"product_id",'as':"store_detail"}},
-        {'$unwind': {'path':"$store_detail",'preserveNullAndEmptyArrays': True}},
+        #{'$lookup':{'from': "store_product",'localField': "product_id","foreignField":"product_id",'as':"store_detail"}},
+        {'$lookup': {'from': "store_product",'localField': "product_id","foreignField":"product_id",'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ["$store_userid",ObjectId(user['id'])]}]}}}],'as': "store_detail"}},
+        {'$unwind': {'path':"$store_detail",'preserveNullAndEmptyArrays': warehouse_flag}},
         {'$project':{'product_id':"$product_id",'product_ref_id':"$product_ref_id",'title':"$title",'thumbnail_url':"$product_img_detail.thumbnail_url",'quantity_detail':"$quantity_detail",'mrp':"$price_detail",
         "purchased_price":{'$cond': {'if': {'$ne': [ { '$type':'$store_detail.purchased_price'},'missing']},'then':'$store_detail.purchased_price','else': 0}},
         "selling_price":{'$cond': {'if': {'$ne': [ { '$type':'$store_detail.selling_price'},'missing']},'then':'$store_detail.selling_price','else': 0}},
@@ -91,7 +106,7 @@ def get_products(response : Response,product:Optional[str] = "",skip:int=0,limit
             rec['product_id']=str(rec['product_id'])
             rec['product_ref_id']=str(rec['product_ref_id'])
         
-        return { 'status': "success","count":record_count,"data": records_list}
+        return { 'status': "success","count":rec_count[0]['count'],"data": records_list}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
