@@ -10,6 +10,11 @@ from fastapi import HTTPException
 special_character_check= re.compile('[@_!#$"%^&*()<>?''`.+_=,;/\\\|}{~:[\]]') 
 objectID_check =  re.compile('^[0-9a-fA-F]{24}$')
 decimal_check = re.compile('^\d{0,8}(\.\d{1,4})?$')
+mobile_pattern = re.compile("^[789]\d{9}$")
+mobile_no_pattern = re.compile("(0|91)?[6-9][0-9]{9}")
+aadhar_pattern = re.compile("^[2-9]{1}[0-9]{3}[0-9]{4}[0-9]{4}$")
+driving_license_pattern = re.compile("^(([A-Z]{2}[0-9]{2})" +"( )|([A-Z]{2}-[0-9]" +"{2}))((19|20)[0-9]" +"[0-9])[0-9]{7}$")
+ifsc_pattern  = re.compile("^[A-Z]{4}0[A-Z0-9]{6}$")
 
 class validation:
     """pincode Validation"""
@@ -136,4 +141,69 @@ class form_validation:
         else:
             raise ValueError(f'Special characters are not allowed on {error_name} field')
 
+    """ObjectID Validation"""
+    def form_objectID_validate(obj_id,error_name):  
+        obj_id = obj_id.strip()
+        if obj_id == "":
+            raise ValueError(f'{error_name} field required')
+        if objectID_check.match(obj_id):
+            return " ".join(obj_id.split())
+        else:
+            raise ValueError(f'Invalid objectid for {error_name} field')
+    
+    """Mobile Number Validation"""
+    def form_mobile_validate(number,error_name):
+        number = number.strip()
+        if number == "":
+            raise ValueError(f'{error_name} field required')
+        if mobile_no_pattern.match(number):
+            return number
+        else:
+            raise ValueError(f'{error_name} not a valid format')
 
+    """Pincode & number Validation"""
+    def form_pin_acc_validate(number,limit,error_name):
+        number_str = str(number)
+        number_str = number_str.strip()
+        if number_str == "":
+            raise ValueError(f'{error_name} field required')
+        if number_str.isnumeric:
+            if len(number_str) ==limit:
+                   return number
+            else:
+                raise ValueError(f'{error_name} field must be {limit} digits')
+        else:
+            raise ValueError(f'{error_name} not a valid number')
+    
+    """aadhar Validation"""
+    def form_aadhar_validation(number):
+        number_str = str(number)
+        number_str = number_str.strip()
+        if number_str == "":
+            raise ValueError('Aadhar number field required')
+        if number_str.isnumeric:
+            if len(number_str) ==12:
+                   return number
+            else:
+                raise ValueError('Aadhar number field must be 12 digits')
+        else:
+            raise ValueError('Please enter valid Aadhar number')    
+    """Driving license validation"""
+    def form_drivinglicense_validation(number):
+        number_str = str(number)
+        if number_str == "":
+            raise ValueError('Driving license number field required')
+        if driving_license_pattern.search(number_str) == None:
+            return number
+        else:
+            raise ValueError('Please enter valid driving license number')
+    
+    """IFSC license validation"""
+    def form_ifsc_code_validation(ifsc_code):
+        number_str = str(ifsc_code)
+        if number_str == "":
+            raise ValueError('IFSC code field required')
+        if ifsc_pattern.search(number_str) == None:
+            return ifsc_code
+        else:
+            raise ValueError('Please enter valid IFSC code')
