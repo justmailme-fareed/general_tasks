@@ -37,11 +37,11 @@ class Jobtype(str,Enum):
     partime='partime'
     contract='contract'
 
-class storeDetails(Document):
-    firstname = StringField(required=True,min_length=3,max_length=20)
-    lastname = StringField(required=True,min_length=3,max_length=20)
+class storeDetails(EmbeddedDocument):
+    firstname = StringField(required=True)
+    lastname = StringField(required=True)
     dob = StringField(required=True)
-    bloodgroup = EnumField(Blood_group,required=True)
+    blood_group = EnumField(Blood_group,required=True)
     gender = EnumField(Gender,required=True)
     door_number=IntField(required=True)
     street_name=StringField(required=True)
@@ -51,28 +51,28 @@ class storeDetails(Document):
     pincode=IntField(required=True)
     aadhar_number=IntField(required=True)
 
-class BankDetail(Document):
-    bank_name = StringField(required=True,min_length=3,max_length=20)
-    branch_name = StringField(required=True,min_length=3,max_length=20)
-    account_number=IntField(required=True,min_length=11,max_length=11)
+class BankDetail(EmbeddedDocument):
+    bank_name = StringField(required=True)
+    branch_name = StringField(required=True)
+    account_number=IntField(required=True)
     ifsc_code=StringField(required=True)
   
-class ContactDetail(Document):
-    phone=IntField(required=True,min_length=10,max_length=10)
-    alternate_phone=IntField(required=True,min_length=10,max_length=10)
+class ContactDetail(EmbeddedDocument):
+    phone=StringField(required=True)
+    alternate_phone=StringField()
     email=EmailField(required=True)
    
-class SupportiveDocument(Document):
+class SupportiveDocument(EmbeddedDocument):
     user_image_url = StringField()
     aadhar_image_url = StringField()
     bank_passbook_url = StringField()
 
-class Store_Employee(Document):
-    personal_detail = ReferenceField(storeDetails)
-    bank_detail = ReferenceField(BankDetail)
-    contact_detail=ReferenceField(ContactDetail)
-    supportive_document = ReferenceField(SupportiveDocument)
-    user_type=EnumField(User_type, default=User_type.store,required=True)
+class store_employee(Document):
+    personal_detail = EmbeddedDocumentField(storeDetails)
+    bank_detail = EmbeddedDocumentField(BankDetail)
+    contact_detail=EmbeddedDocumentField(ContactDetail)
+    supportive_document = EmbeddedDocumentField(SupportiveDocument)
+    user_type=StringField(required=True)
     status=EnumField(store_status,default=store_status.A,required=True)
     password=StringField(requird=True)
     created_at=DateTimeField(requird=True,default=datetime.now())

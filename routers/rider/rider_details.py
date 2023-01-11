@@ -2,14 +2,13 @@ import logging,os,json
 from typing import List
 from fastapi import  APIRouter,Depends,Response,status,Form,UploadFile,File,Request,Body
 from pydantic import EmailStr
-from configuration.config import api_version,s3_
+from configuration.config import api_version
 from routers.user.user_auth import AuthHandler
 from typing import Optional,Union
 from routers.rider.rider_schema import rider,Gender,Blood_group,Jobtype,User_type
-from common.validation import validation,form_validation
+from common.validation import form_validation
 from routers.rider import strong_password
 from database.connection import *
-from pathlib import Path
 from datetime import date,datetime
 from bson import ObjectId
 cwd=os.getcwd()
@@ -69,18 +68,22 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
                 response.status_code = status.HTTP_409_CONFLICT
                 return {'status': "error", "message" :f"Duplicate languages name {value}"}
         
-        name_record_count = get_record_count(db.rider,{"store_id":ObjectId(user_data['id']),"personal_detail.firstname":firstname})
+        name_record_count = get_record_count(db.rider,{"store_id":ObjectId(user_data['id']),"status":"A","personal_detail.firstname":firstname})
         if name_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider name {firstname} already exists"}
-        mobile_record_count = get_record_count(db.rider,{"store_id":ObjectId(user_data['id']),"contact_detail.phone":phone})
+        mobile_record_count = get_record_count(db.rider,{"store_id":ObjectId(user_data['id']),"status":"A","contact_detail.phone":phone})
         if mobile_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider mobile number {phone} already exists"}
-        email_record_count = get_record_count(db.rider,{"store_id":ObjectId(user_data['id']),"contact_detail.email":email})
+        email_record_count = get_record_count(db.rider,{"store_id":ObjectId(user_data['id']),"status":"A","contact_detail.email":email})
         if email_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider email {email} already exists"}
+        adhar_record_count = get_record_count(db.store_employee,{"store_id":ObjectId(user_data['id']),"status":"A","personal_detail.aadhar_number":aadhar_number})
+        if adhar_record_count > 0:
+            response.status_code = status.HTTP_409_CONFLICT
+            return {'status': "error", "message" :f"Rider aadhar number {aadhar_number} already exists"}
         
         store_rec_count = get_record_count(db.rider,{"store_id":ObjectId(user_data['id'])})
         emp_no='-00'+ str(store_rec_count+1)
@@ -157,8 +160,8 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
 def rider_single_data(id : str,response : Response,user=Depends(auth_handler.auth_wrapper)):
     try:
         id= form_validation.form_objectID_validate(id,'Rider ID')
-        if rider.objects.filter(id=id,store_id=user['id']):
-            get_data = rider.objects.get(id=id,store_id=user['id'])
+        if rider.objects.filter(id=id,status="A",store_id=user['id']):
+            get_data = rider.objects.get(id=id,status="A",store_id=user['id'])
             get_data = get_data.to_json()
             data = json.loads(get_data)
             record={"id":data['_id']['$oid'],"personal_detail":data['personal_detail'],"contact_detail":data['contact_detail'],"bank_detail":data['bank_detail'],
@@ -206,19 +209,25 @@ def rider_all_data(response:Response,name:Optional[str] = "",skip:int=0,limit:in
 @router.delete('/rider/{id}')
 def delete_rider(id : str, response : Response,user=Depends(auth_handler.auth_wrapper)):
     try:
-        id= form_validation.form_objectID_validate(id,'parent company ID')
-        if rider.objects.filter(id=id,store_id=user['id']):
-            get_data = rider.objects.get(id=id,store_id=user['id'])
+        id= form_validation.form_objectID_validate(id,'Rider ID')
+        if rider.objects.filter(id=id,status="A",store_id=user['id']):
+            get_data = rider.objects.get(id=id,status="A",store_id=user['id'])
             get_data = get_data.to_json()
             data = json.loads(get_data)
             name=data['personal_detail']['firstname']
             rider_doc_list=data['supportive_document']
             rider_doc_url_list=[rider_doc_list['rider_image_url'],rider_doc_list['aadhar_image_url'],rider_doc_list['driving_license_url'],rider_doc_list['bank_passbook_url']]
-            rider.objects(id=id).delete()
-            for image in rider_doc_url_list:
-                image_url=image.split(s3_bucket_dir)
-                image_file_location= s3_bucket_dir+image_url[1]
-                validate_and_delete_image_s3(s3_bucket_name,image_file_location)
+            rider_details={
+                        "status":'D',
+                        "updated_at":datetime.now(),
+                        "updated_by":user['id'],
+                        }
+            rider.objects(id=id).update(**rider_details)
+           # rider.objects(id=id).delete()
+            # for image in rider_doc_url_list:
+            #     image_url=image.split(s3_bucket_dir)
+            #     image_file_location= s3_bucket_dir+image_url[1]
+            #     validate_and_delete_image_s3(s3_bucket_name,image_file_location)
             return {'status': "success", "message": f"Rider {name} deleted successfully"}
         else:
             response.status_code = status.HTTP_404_NOT_FOUND
@@ -229,7 +238,7 @@ def delete_rider(id : str, response : Response,user=Depends(auth_handler.auth_wr
         return {'status': "error", "message": str(e)}
 
 
-#create rider
+#Update rider
 @router.put('/rider/{id}',status_code=200)
 async def update_rider_details(id:str,response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date,None] = Form(...),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : int = Form(),aadhar_number : int = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Form(...),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(unique=True),bank_name : str = Form(),branch_name : str = Form(),account_number : int = Form(...),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
     try:
@@ -253,22 +262,26 @@ async def update_rider_details(id:str,response : Response,request: Request,first
             alternate_phone=form_validation.form_mobile_validate(alternate_phone,'Alternate Phone number')
         driving_license_number=form_validation.form_drivinglicense_validation(driving_license_number)
         ifsc_code=form_validation.form_ifsc_code_validation(ifsc_code)
-        record_data = get_record(db.rider,{"_id":ObjectId(id),"store_id":ObjectId(user_data['id'])})
+        record_data = get_record(db.rider,{"_id":ObjectId(id),"status":"A","store_id":ObjectId(user_data['id'])})
         if not record_data:
             response.status_code = status.HTTP_404_NOT_FOUND
             return { 'status': "error","message" :f"No record found for given rider ID {id}"}
-        record_count = get_record_count(db.rider,{"_id" : {"$ne" : ObjectId(id)},"personal_detail.firstname":firstname,"store_id":ObjectId(user_data['id'])})
+        record_count = get_record_count(db.rider,{"_id" : {"$ne" : ObjectId(id)},"status":"A","personal_detail.firstname":firstname,"store_id":ObjectId(user_data['id'])})
         if record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider name {firstname} already exists"}
-        mobile_record_count = get_record_count(db.rider, {"_id" : {"$ne" : ObjectId(id)},"contact_detail.phone":phone,"store_id":ObjectId(user_data['id'])})
+        mobile_record_count = get_record_count(db.rider, {"_id" : {"$ne" : ObjectId(id)},"status":"A","contact_detail.phone":phone,"store_id":ObjectId(user_data['id'])})
         if mobile_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider mobile number {phone} already exists"}
-        email_record_count = get_record_count(db.rider, {"_id" : {"$ne" : ObjectId(id)},"contact_detail.email":email,"store_id":ObjectId(user_data['id'])})
+        email_record_count = get_record_count(db.rider, {"_id" : {"$ne" : ObjectId(id)},"status":"A","contact_detail.email":email,"store_id":ObjectId(user_data['id'])})
         if email_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider email {email} already exists"}
+        adhar_record_count = get_record_count(db.store_employee, {"_id" : {"$ne" : ObjectId(id)},"status":"A","personal_detail.aadhar_number":firstname,"store_id":ObjectId(user_data['id'])})
+        if adhar_record_count > 0:
+            response.status_code = status.HTTP_409_CONFLICT
+            return {'status': "error", "message" :f"Rider aadhar number {aadhar_number} already exists"}
     
         language_arr=language_known[0].split(',')
         for lang in language_arr:
