@@ -51,22 +51,22 @@ class UserRegisterDetails(BaseModel):
 
 """Pydantic user Schema"""
 class UserLoginDetails(BaseModel):
-    username: str
+    storeid: str
     password : str
 
     class Config:
         schema_extra = {
             "example": {
-                "username": "store1",
-                "password": "store1",
+                "storeid": "STRCHE001",
+                "password": "store1@123",
             }
         }
-    #username validation
-    @validator('username')
-    def username_validate(cls, v):
+    #storeid validation
+    @validator('storeid')
+    def storeid_validate(cls, v):
         v = v.strip()
         if v == "":
-            raise ValueError('Username field required')
+            raise ValueError('Store ID field required')
         return v
 
     #username validation
@@ -99,6 +99,7 @@ class StoreUser(Document):
     location_address = StringField()
     latitude = FloatField(required=True)
     longtitude = FloatField(required=True)
+    store_id = StringField()
     phone = StringField(required=True)
     email = StringField(required=True)
     status = EnumField(StoreAdminStatus, default=StoreAdminStatus.Active)

@@ -40,9 +40,11 @@ class AuthHandler():
     def decode_token(self, token):
         try:
             payload = jwt.decode(token, self.secret, algorithms=[algorithm])
-            get_user_data = StoreUser.objects(username= payload['sub'])
+            get_user_data = StoreUser.objects(store_id= payload['sub'])
             get_user_data = get_user_data.to_json()
             data = json.loads(get_user_data)
+            # print(data)
+            # return data
             return {"name":payload['sub'],"id":data[0]["_id"]["$oid"]}
         except jwt.ExpiredSignatureError:
             raise HTTPException(status_code=401, detail='Signature has expired')

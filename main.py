@@ -11,6 +11,8 @@ from routers.user import user
 from routers.rider import rider_details
 from routers.store_user import store_details
 from routers.inventory import inventory
+from routers.account import account
+
 import logging
 import uvicorn
 from preload import pre_load
@@ -34,6 +36,7 @@ app.include_router(user.router)
 app.include_router(store_details.router)
 app.include_router(rider_details.router)
 app.include_router(inventory.router)
+app.include_router(account.router)
 
 # app.mount("/uploads", StaticFiles(directory="uploads"), name="static")
 

@@ -46,30 +46,30 @@ auth_handler = AuthHandler()
 @router.post('/login',status_code=200)
 def store_admin_login_user(user_details: UserLoginDetails, response : Response):
     try:
-        username = user_details.username
+        storeid = user_details.storeid
         password = user_details.password
-        check_count = StoreUser.objects(username= username).count()
+        check_count = StoreUser.objects(store_id= storeid).count()
         if check_count == 1:
-            if StoreUser.objects(status= "A",username=username).count() != 1:
+            if StoreUser.objects(status= "A",store_id=storeid).count() != 1:
                 response.status_code = status.HTTP_403_FORBIDDEN
                 return { 'status': "error","message" :"Sorry your account is not active now"} 
-            get_data = StoreUser.objects(username= username)
+            get_data = StoreUser.objects(store_id= storeid)
             get_data = get_data.to_json()
             data = json.loads(get_data)
             password = data[0]["password"]
             # return get_data
             check_user = auth_handler.verify_password(user_details.password, password)
             if check_user == True:
-                token = auth_handler.encode_token(user_details.username)
+                token = auth_handler.encode_token(user_details.storeid)
                 if data[0]["user_type"] == "store_admin":
                     admin_type = "Store Admin"
-                return {"status":"success","username":data[0]["username"],"phone":data[0]["phone"],"email":data[0]["email"],"user_type":admin_type,"token":token}
+                return {"status":"success","id": data[0]["_id"]["$oid"],"store_id":data[0]["store_id"],"username":data[0]["username"],"phone":data[0]["phone"],"email":data[0]["email"],"user_type":admin_type,"token":token}
             else:
                 response.status_code = status.HTTP_401_UNAUTHORIZED
-                return { 'status': "error","message" :"Invalid username and/or password"}
+                return { 'status': "error","message" :"Invalid store id and/or password"}
         else:
             response.status_code = status.HTTP_404_NOT_FOUND
-            return { 'status': "error","message" :"Username not found"}
+            return { 'status': "error","message" :"Store ID not found"}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
