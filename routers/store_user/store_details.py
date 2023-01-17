@@ -24,8 +24,7 @@ router = APIRouter(
 auth_handler = AuthHandler()
 
 cwd=os.getcwd()
-#strong password 
-password=strong_password.password
+
 
 #s3_bucket_name="tis-ftest"
 s3_bucket_name="tis-store-admin"
@@ -37,18 +36,18 @@ s3_bucket_dir="store_employee/"
 async def create_store_employee(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Form(...),blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : int = Form(),aadhar_number : int = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : int = Form(...),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),user_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
     try:    
         firstname=form_validation.form_name_validate(firstname,3,30,'First name')
-        lastname=form_validation.form_name_validate(lastname,3,30,'Last name')
+        lastname=form_validation.form_name_validate(lastname,1,30,'Last name')
         street_name=form_validation.form_name_validate(street_name,3,30,'Street name')
         area=form_validation.form_name_validate(area,3,30,'Area')
         state=form_validation.form_name_validate(state,2,30,'State')
         city=form_validation.form_name_validate(city,3,30,'City')
 
-        pincode=form_validation.form_pin_acc_validate(pincode,6,'Pincode')
+        pincode=form_validation.form_pin_validate(pincode,'Pincode')
         aadhar_number=form_validation.form_aadhar_validation(aadhar_number)
 
         bank_name=form_validation.form_name_validate(bank_name,3,30,'Bank name')
         branch_name=form_validation.form_name_validate(branch_name,3,30,'Branch name')
-        account_number=form_validation.form_pin_acc_validate(account_number,11,'Account no')
+        account_number=form_validation.form_acc_validate(account_number,'Account no')
         ifsc_code=form_validation.form_ifsc_code_validation(ifsc_code)
 
         phone=form_validation.form_mobile_validate(phone,'Phone number')
@@ -79,6 +78,8 @@ async def create_store_employee(response : Response,request: Request,firstname :
         if len(str(store_rec_count))==3:
             emp_no='-'+str(store_rec_count+1)
         employee_id="S"+ city[:3] + emp_no
+
+        password=auth_handler.get_password_hash(strong_password.password)  
 
         user_upload_result = await validate_and_upload_image_s3(response,s3_bucket_name,user_image_url,s3_bucket_dir+'profile/')
         if user_upload_result['status']=='error':
@@ -218,18 +219,18 @@ async def update_store_employee_details(id:str,response : Response,request: Requ
     try:
         id= form_validation.form_objectID_validate(id,'Rider ID')   
         firstname=form_validation.form_name_validate(firstname,3,30,'First name')
-        lastname=form_validation.form_name_validate(lastname,3,30,'Last name')
+        lastname=form_validation.form_name_validate(lastname,1,30,'Last name')
         street_name=form_validation.form_name_validate(street_name,3,30,'Street name')
         area=form_validation.form_name_validate(area,3,30,'Area')
         state=form_validation.form_name_validate(state,2,30,'State')
         city=form_validation.form_name_validate(city,3,30,'City')
 
-        pincode=form_validation.form_pin_acc_validate(pincode,6,'Pincode')
+        pincode=form_validation.form_pin_validate(pincode,'Pincode')
         aadhar_number=form_validation.form_aadhar_validation(aadhar_number)
 
         bank_name=form_validation.form_name_validate(bank_name,3,30,'Bank name')
         branch_name=form_validation.form_name_validate(branch_name,3,30,'Branch name')
-        account_number=form_validation.form_pin_acc_validate(account_number,11,'Account no')
+        account_number=form_validation.form_acc_validate(account_number,'Account no')
         ifsc_code=form_validation.form_ifsc_code_validation(ifsc_code)
 
         phone=form_validation.form_mobile_validate(phone,'Phone number')
@@ -294,7 +295,6 @@ async def update_store_employee_details(id:str,response : Response,request: Requ
                         "contact_detail":contact_detail,
                         "supportive_document":supportive_document,
                         "user_type":user_type,
-                        "password":password,
                         "store_id":user_data['id'],
                         "updated_at":datetime.now(),
                         "updated_by":user_data['id'],

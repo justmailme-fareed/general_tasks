@@ -18,8 +18,9 @@ from common.http_operation import get_record_count,get_records,get_record
 from common.file_upload import validate_and_upload_image_s3,validate_and_delete_image_s3
 from bson.json_util import loads
 from bson.json_util import dumps
+
 #strong password 
-password=strong_password.password
+#password=strong_password.password
    
 router = APIRouter(
     prefix=api_version + "/store",
@@ -36,21 +37,22 @@ s3_bucket_dir="rider/"
 
 #create rider
 @router.post('/rider',status_code=201)
-async def create_rider(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date,None] = Form(...),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : int = Form(),aadhar_number : int = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Form(...),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(unique=True),bank_name : str = Form(),branch_name : str = Form(),account_number : int = Form(...),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
-    try:    
+async def create_rider(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date,None] = Form(...),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : int = Form(),aadhar_number : int = Form(),pan_number: str = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Form(...),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(unique=True),bank_name : str = Form(),branch_name : str = Form(),account_number : int = Form(...),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
+    try: 
         firstname=form_validation.form_name_validate(firstname,3,30,'First name')
-        lastname=form_validation.form_name_validate(lastname,3,30,'Last name')
+        lastname=form_validation.form_name_validate(lastname,1,30,'Last name')
         street_name=form_validation.form_name_validate(street_name,3,30,'Street name')
         area=form_validation.form_name_validate(area,3,30,'Area')
         state=form_validation.form_name_validate(state,2,30,'State')
         city=form_validation.form_name_validate(city,3,30,'City')
 
-        pincode=form_validation.form_pin_acc_validate(pincode,6,'Pincode')
+        pincode=form_validation.form_pin_validate(pincode,'Pincode')
         aadhar_number=form_validation.form_aadhar_validation(aadhar_number)
+        pan_number=form_validation.form_pan_number_validation(pan_number)
 
         bank_name=form_validation.form_name_validate(bank_name,3,30,'Bank name')
         branch_name=form_validation.form_name_validate(branch_name,3,30,'Branch name')
-        account_number=form_validation.form_pin_acc_validate(account_number,11,'Account no')
+        account_number=form_validation.form_acc_validate(account_number,'Account no')
 
         phone=form_validation.form_mobile_validate(phone,'Phone number')
         if alternate_phone:
@@ -80,7 +82,7 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
         if email_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider email {email} already exists"}
-        adhar_record_count = get_record_count(db.store_employee,{"store_id":ObjectId(user_data['id']),"status":"A","personal_detail.aadhar_number":aadhar_number})
+        adhar_record_count = get_record_count(db.rider,{"store_id":ObjectId(user_data['id']),"status":"A","personal_detail.aadhar_number":aadhar_number})
         if adhar_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider aadhar number {aadhar_number} already exists"}
@@ -92,6 +94,7 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
         if len(str(store_rec_count))==3:
             emp_no='-'+str(store_rec_count+1)
         employee_id="R"+ city[:3] + emp_no
+        password=auth_handler.get_password_hash(strong_password.password)  
 
         rider_upload_result = await validate_and_upload_image_s3(response,s3_bucket_name,rider_image_url,s3_bucket_dir+'profile/')
         if rider_upload_result['status']=='error':
@@ -126,11 +129,13 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
                          "state":state,
                          "pincode":pincode,
                          "aadhar_number":aadhar_number,
+                         "pan_number":pan_number,
+                         "job_type":job_type
                         }
 
         driving_license_detail={"driving_license_number":driving_license_number,"expiry_date":str(driving_license_expiry_date)}
         bank_detail={"bank_name":bank_name, "branch_name":branch_name,"account_number":account_number,"ifsc_code":ifsc_code,}
-        contact_detail={"phone":phone,"alternate_phone":alternate_phone,"job_type":job_type,"email":email}
+        contact_detail={"phone":phone,"alternate_phone":alternate_phone,"email":email}
         supportive_document={"rider_image_url":rider_image_path,"aadhar_image_url":aadhar_image_path,"driving_license_url":driv_image_path,"bank_passbook_url":bankp_image_path}
         
         raide_details={"personal_detail":personal_detail,
@@ -240,23 +245,23 @@ def delete_rider(id : str, response : Response,user=Depends(auth_handler.auth_wr
 
 #Update rider
 @router.put('/rider/{id}',status_code=200)
-async def update_rider_details(id:str,response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date,None] = Form(...),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : int = Form(),aadhar_number : int = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Form(...),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(unique=True),bank_name : str = Form(),branch_name : str = Form(),account_number : int = Form(...),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
+async def update_rider_details(id:str,response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date,None] = Form(...),blood_group:Blood_group=Form(),gender :  Gender = Form(),language_known : List[str] = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : int = Form(),aadhar_number : int = Form(),pan_number: str = Form(),driving_license_number : str = Form(),driving_license_expiry_date : Union[date, None] = Form(...),job_type : Jobtype = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(unique=True),bank_name : str = Form(),branch_name : str = Form(),account_number : int = Form(...),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),rider_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),driving_license_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
     try:
         id= form_validation.form_objectID_validate(id,'Rider ID')   
         firstname=form_validation.form_name_validate(firstname,3,30,'First name')
-        lastname=form_validation.form_name_validate(lastname,3,30,'Last name')
+        lastname=form_validation.form_name_validate(lastname,1,30,'Last name')
         street_name=form_validation.form_name_validate(street_name,3,30,'Street name')
         area=form_validation.form_name_validate(area,3,30,'Area')
         state=form_validation.form_name_validate(state,2,30,'State')
         city=form_validation.form_name_validate(city,3,30,'City')
 
-        pincode=form_validation.form_pin_acc_validate(pincode,6,'Pincode')
+        pincode=form_validation.form_pin_validate(pincode,'Pincode')
         aadhar_number=form_validation.form_aadhar_validation(aadhar_number)
+        pan_number=form_validation.form_pan_number_validation(pan_number)
 
         bank_name=form_validation.form_name_validate(bank_name,3,30,'Bank name')
         branch_name=form_validation.form_name_validate(branch_name,3,30,'Branch name')
-        account_number=form_validation.form_pin_acc_validate(account_number,11,'Account no')
-
+        account_number=form_validation.form_acc_validate(account_number,'Account no')
         phone=form_validation.form_mobile_validate(phone,'Phone number')
         if alternate_phone:
             alternate_phone=form_validation.form_mobile_validate(alternate_phone,'Alternate Phone number')
@@ -278,7 +283,7 @@ async def update_rider_details(id:str,response : Response,request: Request,first
         if email_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider email {email} already exists"}
-        adhar_record_count = get_record_count(db.store_employee, {"_id" : {"$ne" : ObjectId(id)},"status":"A","personal_detail.aadhar_number":firstname,"store_id":ObjectId(user_data['id'])})
+        adhar_record_count = get_record_count(db.rider, {"_id" : {"$ne" : ObjectId(id)},"status":"A","personal_detail.aadhar_number":firstname,"store_id":ObjectId(user_data['id'])})
         if adhar_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider aadhar number {aadhar_number} already exists"}
@@ -327,11 +332,13 @@ async def update_rider_details(id:str,response : Response,request: Request,first
                          "state":state,
                          "pincode":pincode,
                          "aadhar_number":aadhar_number,
+                          "pan_number":pan_number,
+                          "job_type":job_type,
                         }
         
         driving_license_detail={"driving_license_number":driving_license_number,"expiry_date":str(driving_license_expiry_date)}
         bank_detail={"bank_name":bank_name, "branch_name":branch_name,"account_number":account_number,"ifsc_code":ifsc_code,}
-        contact_detail={"phone":phone,"alternate_phone":alternate_phone,"job_type":job_type,"email":email}
+        contact_detail={"phone":phone,"alternate_phone":alternate_phone,"email":email}
         supportive_document={"rider_image_url":rider_image_path,"aadhar_image_url":aadhar_image_path,"driving_license_url":driv_image_path,"bank_passbook_url":bankp_image_path}
         
         rider_details={"personal_detail":personal_detail,

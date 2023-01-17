@@ -162,16 +162,27 @@ class form_validation:
             raise ValueError(f'{error_name} not a valid format')
 
     """Pincode & number Validation"""
-    def form_pin_acc_validate(number,limit,error_name):
+    def form_pin_validate(number,error_name):
         number_str = str(number)
         number_str = number_str.strip()
         if number_str == "":
             raise ValueError(f'{error_name} field required')
         if number_str.isnumeric:
-            if len(number_str) ==limit:
+            if len(number_str) ==6:
                    return number
             else:
-                raise ValueError(f'{error_name} field must be {limit} digits')
+                raise ValueError(f'{error_name} field must be 6 digits')
+        else:
+            raise ValueError(f'{error_name} not a valid number')
+    
+    """Pincode & number Validation"""
+    def form_acc_validate(number,error_name):
+        number_str = str(number)
+        number_str = number_str.strip()
+        if number_str == "":
+            raise ValueError(f'{error_name} field required')
+        if number_str.isnumeric:
+                   return number
         else:
             raise ValueError(f'{error_name} not a valid number')
     
@@ -207,3 +218,15 @@ class form_validation:
             return ifsc_code
         else:
             raise ValueError('Please enter valid IFSC code')
+
+    """pan no Validation"""
+    def form_pan_number_validation(number):
+        number_str = str(number)
+        number_str = number_str.strip()
+        if number_str == "":
+            raise ValueError('Pan number field required')
+        if number_str.isalnum():
+            return number
+        else:
+            raise ValueError('Pan number must be alphanumeric')    
+    

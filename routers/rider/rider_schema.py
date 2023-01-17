@@ -55,6 +55,9 @@ class PersonalDetails(EmbeddedDocument):
     state=StringField(required=True)
     pincode=IntField(required=True)
     aadhar_number=IntField(required=True)
+    pan_number=StringField(required=True)
+    job_type = EnumField(Jobtype, default=Jobtype.fulltime,required=True)
+    
 
 class BankDetail(EmbeddedDocument):
     bank_name = StringField(required=True)
@@ -65,7 +68,6 @@ class BankDetail(EmbeddedDocument):
 class ContactDetail(EmbeddedDocument):
     phone=StringField(required=True)
     alternate_phone=StringField()
-    job_type = EnumField(Jobtype, default=Jobtype.fulltime,required=True)
     email=EmailField(required=True)#unique=True
 
 class DrivingDetail(EmbeddedDocument):
