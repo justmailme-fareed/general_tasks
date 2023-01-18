@@ -94,8 +94,8 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
         if len(str(store_rec_count))==3:
             emp_no='-'+str(store_rec_count+1)
         employee_id="R"+ city[:3] + emp_no
-        password=auth_handler.get_password_hash(strong_password.password)
-        # password=auth_handler.get_password_hash("rider@123")  
+        # password=auth_handler.get_password_hash(strong_password.password)
+        password=auth_handler.get_password_hash("rider@123")  
 
         rider_upload_result = await validate_and_upload_image_s3(response,s3_bucket_name,rider_image_url,s3_bucket_dir+'profile/')
         if rider_upload_result['status']=='error':
