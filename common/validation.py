@@ -14,7 +14,7 @@ mobile_pattern = re.compile("^[789]\d{9}$")
 mobile_no_pattern = re.compile("(0|91)?[6-9][0-9]{9}")
 aadhar_pattern = re.compile("^[2-9]{1}[0-9]{3}[0-9]{4}[0-9]{4}$")
 driving_license_pattern = re.compile("^(([A-Z]{2}[0-9]{2})" +"( )|([A-Z]{2}-[0-9]" +"{2}))((19|20)[0-9]" +"[0-9])[0-9]{7}$")
-ifsc_pattern  = re.compile("^[A-Z]{4}0[A-Z0-9]{6}$")
+ifsc_pattern  = re.compile("^[A-Z]{20}0[A-Z0-9]{50}$")
 
 class validation:
     """pincode Validation"""
@@ -214,10 +214,11 @@ class form_validation:
         number_str = str(ifsc_code)
         if number_str == "":
             raise ValueError('IFSC code field required')
-        if ifsc_pattern.search(number_str) == None:
-            return ifsc_code
+        # if ifsc_pattern.search(number_str) == None:
+        #     return ifsc_code
         else:
-            raise ValueError('Please enter valid IFSC code')
+            return ifsc_code
+            #raise ValueError('Please enter valid IFSC code')
 
     """pan no Validation"""
     def form_pan_number_validation(number):

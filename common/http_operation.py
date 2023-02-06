@@ -9,10 +9,23 @@ import bson
 from bson import ObjectId
 from bson.json_util import dumps
 from bson.json_util import loads
-
+import plivo
+from configuration.config import auth_id,auth_token
 
 """Common Http Operation"""
 class http_operation:
+    """OTP Send functionalities"""
+    def otpSend(to_number,txt):
+        client = plivo.RestClient(auth_id,auth_token)
+        message_created = client.messages.create(
+            src = "+919043304976",
+            dst = "+91"+to_number,
+            text=txt
+        )
+        return message_created
+#         return {'api_id': '0d0e4eec-532b-11ed-845a-0242ac110005',
+#  'message': 'message(s) queued',
+#  'message_uuid': ['0d0fff44-532b-11ed-845a-0242ac110005']}
     """Insert record"""
     def insert_data():
         pass

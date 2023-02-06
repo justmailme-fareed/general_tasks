@@ -12,9 +12,11 @@ from database.connection import *
 from bson import ObjectId
 from collections import Counter
 from common.http_operation import get_record_count,get_records,get_record
+from common.http_operation import http_operation
 from common.file_upload import validate_and_upload_image_s3,validate_and_delete_image_s3
 from bson.json_util import loads
 from bson.json_util import dumps
+from common.notification.common_notification import send_ses_mail_notification_with_template
 
 router = APIRouter(
     prefix=api_version + "/store",
@@ -34,7 +36,8 @@ s3_bucket_dir="store_employee/"
 #create store employee 
 @router.post('/employee',status_code=201)
 async def create_store_employee(response : Response,request: Request,firstname : str = Form(),lastname : str = Form(),dob :  Union[date, None] = Form(...),blood_group:Blood_group=Form(),gender :  Gender = Form(),door_number : int = Form(),street_name : str = Form(),area : str = Form(),city : str = Form(),state : str = Form(),pincode : int = Form(),aadhar_number : int = Form(),phone : str = Form(),alternate_phone:Optional[str]=Form(None),email : EmailStr = Form(),bank_name : str = Form(),branch_name : str = Form(),account_number : int = Form(...),ifsc_code : str = Form(),user_type : User_type = Form(),user_data=Depends(auth_handler.auth_wrapper),user_image_url:UploadFile = File(...),aadhar_image_url:UploadFile = File(...),bank_passbook_url:UploadFile = File(...)):
-    try:    
+    try:
+       
         firstname=form_validation.form_name_validate(firstname,3,30,'First name')
         lastname=form_validation.form_name_validate(lastname,1,30,'Last name')
         street_name=form_validation.form_name_validate(street_name,3,30,'Street name')
@@ -53,7 +56,9 @@ async def create_store_employee(response : Response,request: Request,firstname :
         phone=form_validation.form_mobile_validate(phone,'Phone number')
         if alternate_phone:
             alternate_phone=form_validation.form_mobile_validate(alternate_phone,'Alternate Phone number')
-        
+        if phone==alternate_phone:
+            response.status_code = status.HTTP_409_CONFLICT
+            return {'status': "error", "message" :f"Mobile number and alternate number should not be same"}
         name_record_count = get_record_count(db.store_employee,{"store_id":ObjectId(user_data['id']),"status":"A","personal_detail.firstname":firstname})
         if name_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
@@ -78,9 +83,10 @@ async def create_store_employee(response : Response,request: Request,firstname :
         if len(str(store_rec_count))==3:
             emp_no='-'+str(store_rec_count+1)
         employee_id="S"+ city[:3] + emp_no
-
-        password=auth_handler.get_password_hash(strong_password.password)  
-
+        password=employee_id+"SP"
+        ency_password=auth_handler.get_password_hash(password)    
+       
+        
         user_upload_result = await validate_and_upload_image_s3(response,s3_bucket_name,user_image_url,s3_bucket_dir+'profile/')
         if user_upload_result['status']=='error':
             return user_upload_result
@@ -119,12 +125,31 @@ async def create_store_employee(response : Response,request: Request,firstname :
                         "supportive_document":supportive_document,
                         "user_type":user_type,
                         "employee_id": employee_id,
-                        "password":password,
+                        "password":ency_password,
                         "store_id":user_data['id'],
                         "created_by":user_data['id'],
                         "updated_by":user_data['id'],
                         }
         store_employee(**user_details).save()
+        """ Notification section """
+        message="Hi, Greetings from Treeis!\nWelcome to our store.\nPlease find your account details:\nUsername: "+employee_id+"\nPassword: "+password+"\nNote: Please do not share with anyone.\nRegards,\nTree Integrated Services"
+        otp_send = http_operation.otpSend(phone,message)
+        _date=datetime.now()
+        registration_date=_date.strftime("%d/%m/%Y")
+        mailing_details={
+                'to_recipients':[email],
+                'cc_recipients':[],
+                'bcc_recipients':[],
+                'no_reply_email':['no-reply@example.com']
+            }
+        template_details={
+            'template_name':'employee_registration_details',
+            'template_data':'{\"registration_date\" :\"'+registration_date+'\",\"user_name\" :\"'+firstname+'\",\"user_mobile_no\" :\"'+phone+'\",\"user_email\" :\"'+email+'\",\"employee_id\" :\"'+employee_id+'\",\"acc_user_name\" :\"'+employee_id+'\",\"acc_user_pass\" :\"'+password+'\"}' 
+            }
+        result=send_ses_mail_notification_with_template(mailing_details,template_details,None)
+        if result['status']=='error':
+                response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+                return result
         return {'status': "success", "message" :f"Store employee {firstname} added successfully"}
     except Exception as e:
         logging.error("Exception occurred", exc_info=True)
@@ -236,6 +261,9 @@ async def update_store_employee_details(id:str,response : Response,request: Requ
         phone=form_validation.form_mobile_validate(phone,'Phone number')
         if alternate_phone:
             alternate_phone=form_validation.form_mobile_validate(alternate_phone,'Alternate Phone number')
+        if phone==alternate_phone:
+            response.status_code = status.HTTP_409_CONFLICT
+            return {'status': "error", "message" :f"Mobile number and alternate number should not be same"}
         record_data = get_record(db.store_employee,{"_id":ObjectId(id),"status":"A","store_id":ObjectId(user_data['id'])})
         if not record_data:
             response.status_code = status.HTTP_404_NOT_FOUND
@@ -252,7 +280,7 @@ async def update_store_employee_details(id:str,response : Response,request: Requ
         if email_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Store employee email {email} already exists"}
-        adhar_record_count = get_record_count(db.store_employee, {"_id" : {"$ne" : ObjectId(id)},"status":"A","personal_detail.aadhar_number":firstname,"store_id":ObjectId(user_data['id'])})
+        adhar_record_count = get_record_count(db.store_employee, {"_id" : {"$ne" : ObjectId(id)},"status":"A","personal_detail.aadhar_number":aadhar_number,"store_id":ObjectId(user_data['id'])})
         if adhar_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Store employee aadhar number {aadhar_number} already exists"}

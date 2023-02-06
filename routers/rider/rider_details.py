@@ -11,16 +11,14 @@ from routers.rider import strong_password
 from database.connection import *
 from datetime import date,datetime
 from bson import ObjectId
-cwd=os.getcwd()
-
+from common.http_operation import http_operation
 from collections import Counter
 from common.http_operation import get_record_count,get_records,get_record
 from common.file_upload import validate_and_upload_image_s3,validate_and_delete_image_s3
 from bson.json_util import loads
 from bson.json_util import dumps
+from common.notification.common_notification import send_ses_mail_notification_with_template
 
-#strong password 
-#password=strong_password.password
    
 router = APIRouter(
     prefix=api_version + "/store",
@@ -57,6 +55,11 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
         phone=form_validation.form_mobile_validate(phone,'Phone number')
         if alternate_phone:
             alternate_phone=form_validation.form_mobile_validate(alternate_phone,'Alternate Phone number')
+            
+        if phone==alternate_phone:
+            response.status_code = status.HTTP_409_CONFLICT
+            return {'status': "error", "message" :f"Mobile number and alternate number should not be same"}
+
         driving_license_number=form_validation.form_drivinglicense_validation(driving_license_number)
         ifsc_code=form_validation.form_ifsc_code_validation(ifsc_code)
 
@@ -95,8 +98,10 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
             emp_no='-'+str(store_rec_count+1)
         employee_id="R"+ city[:3] + emp_no
         # password=auth_handler.get_password_hash(strong_password.password)
-        password=auth_handler.get_password_hash("rider@123")  
-
+        #password=auth_handler.get_password_hash("rider@123")
+        password=employee_id+"RP"
+        ency_password=auth_handler.get_password_hash(password)     
+        
         rider_upload_result = await validate_and_upload_image_s3(response,s3_bucket_name,rider_image_url,s3_bucket_dir+'profile/')
         if rider_upload_result['status']=='error':
             return rider_upload_result
@@ -146,13 +151,32 @@ async def create_rider(response : Response,request: Request,firstname : str = Fo
                         "supportive_document":supportive_document,
                         "user_type":user_type,
                         "employee_id": employee_id,
-                        "password":password,
+                        "password":ency_password,
                         "store_id":user_data['id'],
                         "created_by":user_data['id'],
                         "updated_by":user_data['id'],
                         }
         #raise SystemExit(raide_details)
         rider(**raide_details).save()
+        """ Notification section """
+        message="Hi, Greetings from Treeis!\nWelcome to our store as a rider.\nPlease find your account details:\nUsername: "+employee_id+"\nPassword: "+password+"\nNote: Please do not share with anyone.\nRegards,\nTree Integrated Services"
+        otp_send = http_operation.otpSend(phone,message)
+        _date=datetime.now()
+        registration_date=_date.strftime("%d/%m/%Y")
+        mailing_details={
+                'to_recipients':[email],
+                'cc_recipients':[],
+                'bcc_recipients':[],
+                'no_reply_email':['no-reply@example.com']
+            }
+        template_details={
+            'template_name':'employee_registration_details',
+            'template_data':'{\"registration_date\" :\"'+registration_date+'\",\"user_name\" :\"'+firstname+'\",\"user_mobile_no\" :\"'+phone+'\",\"user_email\" :\"'+email+'\",\"employee_id\" :\"'+employee_id+'\",\"acc_user_name\" :\"'+employee_id+'\",\"acc_user_pass\" :\"'+password+'\"}' 
+            }
+        result=send_ses_mail_notification_with_template(mailing_details,template_details,None)
+        if result['status']=='error':
+                response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+                return result
         return {'status': "success", "message" :f"Rider {firstname} added successfully","employee_id":employee_id}
 
     except Exception as e:
@@ -268,6 +292,11 @@ async def update_rider_details(id:str,response : Response,request: Request,first
             alternate_phone=form_validation.form_mobile_validate(alternate_phone,'Alternate Phone number')
         driving_license_number=form_validation.form_drivinglicense_validation(driving_license_number)
         ifsc_code=form_validation.form_ifsc_code_validation(ifsc_code)
+
+        if phone==alternate_phone:
+            response.status_code = status.HTTP_409_CONFLICT
+            return {'status': "error", "message" :f"Mobile number and alternate number should not be same"}
+
         record_data = get_record(db.rider,{"_id":ObjectId(id),"status":"A","store_id":ObjectId(user_data['id'])})
         if not record_data:
             response.status_code = status.HTTP_404_NOT_FOUND
@@ -284,7 +313,7 @@ async def update_rider_details(id:str,response : Response,request: Request,first
         if email_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider email {email} already exists"}
-        adhar_record_count = get_record_count(db.rider, {"_id" : {"$ne" : ObjectId(id)},"status":"A","personal_detail.aadhar_number":firstname,"store_id":ObjectId(user_data['id'])})
+        adhar_record_count = get_record_count(db.rider, {"_id" : {"$ne" : ObjectId(id)},"status":"A","personal_detail.aadhar_number":aadhar_number,"store_id":ObjectId(user_data['id'])})
         if adhar_record_count > 0:
             response.status_code = status.HTTP_409_CONFLICT
             return {'status': "error", "message" :f"Rider aadhar number {aadhar_number} already exists"}

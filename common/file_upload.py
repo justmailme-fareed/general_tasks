@@ -121,3 +121,25 @@ def validate_and_delete_dimension_images(bucket,file_location):
         return { 'status': "success","message" :'file deleted successfully'}
     except FileNotFoundError:
         return { 'status': "error","message" :"unnable to delete file from S3 bucket"}
+
+
+########################### Notification Mail Template File Upload section #############
+async def validate_and_upload_email_template_image_s3(response,bucket_name,image_file,file_location): 
+    try:
+        file_size = await image_file.read()
+        validate_image= await validate_uploaded_image(response,image_file,file_size)
+        if validate_image['status']=='error':
+            return validate_image
+        #file_name=validate_image_name(image_file.filename)
+        file_name=image_file.filename
+        s3_client = connect_s3('client')
+        s3_resource = connect_s3('resource')
+        bucket = s3_resource.Bucket(bucket_name)
+        if not bucket.creation_date:
+                create_file_upload_bucket(bucket_name,s3_region)
+        await image_file.seek(0)
+        s3_client.upload_fileobj(image_file.file,bucket_name,file_location+file_name, ExtraArgs={"ACL": "public-read",'ContentType': 'multerS3.AUTO_CONTENT_TYPE'})
+        uploaded_file_url = f"https://{bucket_name}.s3.amazonaws.com/{file_location+file_name}"
+        return { 'status': "success","uploaded_file_url" :uploaded_file_url}
+    except FileNotFoundError:
+        return { 'status': "error","message" :"unnable to upload file to S3 bucket"}
