@@ -15,7 +15,7 @@ auth_handler = AuthHandler()
 
 #Login User Data
 @router.get('/account',status_code=200)
-def accoun_details(response : Response):
+def accoun_details(response : Response,user=Depends(auth_handler.auth_wrapper)):
     return {
         "status":"success",
         "count":3,
@@ -32,7 +32,7 @@ def accoun_details(response : Response):
                 "total_order":30
             },
             {
-                "sno":1,
+                "sno":2,
                 "date":"2-1-2023",
                 "cash_amount":20000,
                 "online_amount":20000,
@@ -43,7 +43,7 @@ def accoun_details(response : Response):
                 "total_order":10
             },
             {
-                "sno":1,
+                "sno":3,
                 "date":"3-1-2023",
                 "cash_amount":20000,
                 "online_amount":20000,

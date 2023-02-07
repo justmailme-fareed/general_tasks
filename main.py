@@ -13,6 +13,7 @@ from routers.store_user import store_details
 from routers.inventory import inventory
 from routers.account import account
 from routers.notification import notification
+from fastapi.middleware.cors import CORSMiddleware
 
 import logging
 import uvicorn
@@ -30,6 +31,17 @@ app = FastAPI(
     #     "url": "",
     #     "email": "test@gmail.com",
     # }
+)
+
+#Middleware Function
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(user.router)
