@@ -34,7 +34,7 @@ class Blood_group(str,Enum):
 #Jobtype Enum Values
 class Jobtype(str,Enum):
     fulltime='fulltime'
-    partime='partime'
+    parttime='parttime'
     contract='contract'
 
 class storeDetails(EmbeddedDocument):
