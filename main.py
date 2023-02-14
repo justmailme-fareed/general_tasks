@@ -12,8 +12,12 @@ from routers.rider import rider_details
 from routers.store_user import store_details
 from routers.inventory import inventory
 from routers.account import account
+
 #from routers.notification import notification
 from routers.dynamodb import crud
+from routers.notification import notification
+from routers.dashboard_home import home
+from routers.history import history
 from fastapi.middleware.cors import CORSMiddleware
 
 import logging
@@ -51,6 +55,8 @@ app.include_router(store_details.router)
 app.include_router(rider_details.router)
 app.include_router(inventory.router)
 app.include_router(account.router)
+app.include_router(home.router)
+app.include_router(history.router)
 #app.include_router(notification.router)
 app.include_router(crud.router)
 
