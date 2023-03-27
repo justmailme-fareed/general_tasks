@@ -27,6 +27,10 @@ router = APIRouter(
 def create_user_address(response : Response,request: Request,address:str = Form(),db: Session = Depends(get_db)):
     try:
         address=validation.address_validation(address,3,50,'address')
+        addr_details_exist=db.query(user_address).where(user_address.address==address).count()
+        if addr_details_exist > 0:
+            response.status_code = 409
+            return {"status":"error","message":f"address name already exists"}
         geolocator = Nominatim(user_agent="eastvantage")
         location = geolocator.geocode(address)
         if location is None:
