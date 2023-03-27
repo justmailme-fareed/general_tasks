@@ -9,8 +9,6 @@ from .address_schema  import user_address
 from configuration.config import api_version
 from database.connection import *
 import logging
-import json
-import datetime
 from common.validation import validation
 from geopy.distance import great_circle as GRC
 from geopy.geocoders import Nominatim
@@ -66,6 +64,10 @@ def update_user_address(response : Response,id:int,address:str = Form(),db: Sess
             response.status_code = 404
             return {"status":"error","message":f"No address found for given address id {id}"}
         address=validation.address_validation(address,3,50,'address')
+        addr_details_exist=db.query(user_address).where((user_address.id != id) & (user_address.address==address)).count()
+        if addr_details_exist > 0:
+            response.status_code = 409
+            return {"status":"error","message":f"address name already exists"}
         geolocator = Nominatim(user_agent="eastvantage")
         location = geolocator.geocode(address)
         if location is None:
@@ -86,7 +88,6 @@ def update_user_address(response : Response,id:int,address:str = Form(),db: Sess
 @router.delete('/address/{id}', status_code=200)
 def delete_user_address(response : Response,id:int,db: Session = Depends(get_db)):
     try:
-        raise SystemExit('d')
         data=db.query(user_address).where(user_address.id==id).first()
         if data is None:
             response.status_code = 404

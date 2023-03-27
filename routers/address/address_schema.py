@@ -4,9 +4,8 @@ Description : address related schema present here.
 Created Date : 27-03-2023
 """
 
-#from pydantic import BaseModel,Field,validator
+
 from database.connection import *
-#from common.validation import validation
 from sqlalchemy import TIMESTAMP, Column, String, Integer,Float
 from sqlalchemy.sql import func
 from fastapi_utils.guid_type import GUID, GUID_DEFAULT_SQLITE
