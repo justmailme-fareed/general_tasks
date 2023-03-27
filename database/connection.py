@@ -1,16 +1,24 @@
 """
 FileName : connection.py
 Description : Database Connectivity
-Author : Tree Integrated services
-Created Date : 30-9-2022
+Created Date : 27-03-2023
 """
-from configuration.config import dbname
-from pymongo import MongoClient
-from mongoengine import *
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-#Mongoengine Connectivity
-connect(dbname)
-#Pymongo Connectivity
-py_conn = MongoClient(f"mongodb://localhost:27017/{dbname}")
-collection=py_conn[dbname]
-db = py_conn[dbname]
+SQLITE_DATABASE_URL = "sqlite:///./eastvantage.db"
+
+engine = create_engine(
+    SQLITE_DATABASE_URL, echo=True, connect_args={"check_same_thread": False}
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
